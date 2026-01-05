@@ -4,9 +4,9 @@
 package v4
 
 import (
-	"encoding/base64"
 	"testing"
 
+	"github.com/name212/netpacket/tests"
 	"github.com/name212/netpacket/v4"
 	"github.com/stretchr/testify/require"
 )
@@ -51,7 +51,7 @@ func TestParseIPv4PacketNoOptionsWithData(t *testing.T) {
 	packet := parsePacket(t, ipPacket, 84, 64)
 
 	expectedPayload := "CAD0PdU8AAGar1ppAAAAAHOYBwAAAAAAEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nw=="
-	require.Equal(t, expectedPayload, base64.StdEncoding.EncodeToString(packet.Payload))
+	tests.AssertDataAsBase64(t, expectedPayload, packet.Payload, 64)
 
 	header := packet.Header
 	assertSourceAndDestinationAndProto(t, header, "10.233.233.1", v4.ProtocolICMP, "8.8.8.8", "ICMP")

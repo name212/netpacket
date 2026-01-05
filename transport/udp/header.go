@@ -4,12 +4,10 @@
 package udp
 
 import (
-	"fmt"
-
-	"github.com/name212/netpacket"
+	"encoding/binary"
 )
 
-const minHeaderLength = 8
+const headerLength = 8
 
 type Header struct {
 	SourcePort uint16
@@ -18,10 +16,27 @@ type Header struct {
 	Checksum   uint16
 }
 
-func (h *Header) ParseHeader(data []byte) (*Header, error) {
-	if len(data) < minHeaderLength {
-		return nil, fmt.Errorf("%w for UDP header", netpacket.ShortDataErr)
+func (h *Header) GetSourcePort() int {
+	return int(h.SourcePort)
+}
+
+func (h *Header) GetDestPort() int {
+	return int(h.DestPort)
+}
+
+func (h *Header) Len() int {
+	return int(h.Length)
+}
+
+func ParseHeader(data []byte) (*Header, error) {
+	if err := isValidDatagram(data); err != nil {
+		return nil, err
 	}
 
-	return nil, nil
+	return &Header{
+		SourcePort: binary.BigEndian.Uint16(data[0:2]),
+		DestPort:   binary.BigEndian.Uint16(data[2:4]),
+		Length:     binary.BigEndian.Uint16(data[4:6]),
+		Checksum:   binary.BigEndian.Uint16(data[6:8]),
+	}, nil
 }

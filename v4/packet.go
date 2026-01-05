@@ -3,7 +3,11 @@
 
 package v4
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/name212/netpacket"
+)
 
 type Packet struct {
 	Header  *Header
@@ -13,7 +17,7 @@ type Packet struct {
 func ParsePacket(data []byte) (*Packet, error) {
 	header, err := ParseHeader(data)
 	if err != nil {
-		return nil, err
+		return nil, netpacket.WrapCannotParseHeaderErr(err.Error())
 	}
 
 	totalLen := header.GetTotalLen()
