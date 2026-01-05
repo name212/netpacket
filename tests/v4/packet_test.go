@@ -6,8 +6,8 @@ package v4
 import (
 	"testing"
 
+	"github.com/name212/netpacket/net/ip/v4"
 	"github.com/name212/netpacket/tests"
-	"github.com/name212/netpacket/v4"
 	"github.com/stretchr/testify/require"
 )
 
