@@ -9,7 +9,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/name212/ip/utils"
+	"github.com/name212/netpacket"
+	"github.com/name212/netpacket/utils"
 )
 
 const (
@@ -73,7 +74,7 @@ type Flags struct {
 // ParseHeader parses the IPv4 header from the given byte slice
 func ParseHeader(data []byte) (*Header, error) {
 	if len(data) < minHeaderLength {
-		return nil, fmt.Errorf("data too short to contain an IPv4 header")
+		return nil, fmt.Errorf("%w for IPv4 header", ip.ShortDataErr)
 	}
 
 	header := &Header{
