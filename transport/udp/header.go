@@ -20,7 +20,7 @@ type Header struct {
 
 func (h *Header) ParseHeader(data []byte) (*Header, error) {
 	if len(data) < minHeaderLength {
-		return nil, fmt.Errorf("%w for UDP header", ip.ShortDataErr)
+		return nil, fmt.Errorf("%w for UDP header", netpacket.ShortDataErr)
 	}
 
 	return nil, nil

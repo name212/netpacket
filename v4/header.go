@@ -74,7 +74,7 @@ type Flags struct {
 // ParseHeader parses the IPv4 header from the given byte slice
 func ParseHeader(data []byte) (*Header, error) {
 	if len(data) < minHeaderLength {
-		return nil, fmt.Errorf("%w for IPv4 header", ip.ShortDataErr)
+		return nil, fmt.Errorf("%w for IPv4 header", netpacket.ShortDataErr)
 	}
 
 	header := &Header{
