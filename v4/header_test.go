@@ -17,7 +17,7 @@ func TestParseHeader(t *testing.T) {
 		0xc0, 0xa8, 0x00, 0x01,
 	}
 
-	header, err := ParseIPv4Header(ipPacket)
+	header, err := ParseHeader(ipPacket)
 	if err != nil {
 		t.Error("Cannot parse header", err)
 		return
@@ -91,7 +91,7 @@ func TestParseOptions(t *testing.T) {
 		0x00, 0x00, 0x00, 0x01, 0x02, 0x03,
 	}
 
-	header, err := ParseIPv4Header(ipPacket)
+	header, err := ParseHeader(ipPacket)
 	if err != nil {
 		t.Error("Cannot parse header", err)
 		return

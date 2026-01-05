@@ -70,8 +70,8 @@ type Flags struct {
 	MoreFragments bool
 }
 
-// ParseIPv4Header parses the IPv4 header from the given byte slice
-func ParseIPv4Header(data []byte) (*Header, error) {
+// ParseHeader parses the IPv4 header from the given byte slice
+func ParseHeader(data []byte) (*Header, error) {
 	if len(data) < minHeaderLength {
 		return nil, fmt.Errorf("data too short to contain an IPv4 header")
 	}
