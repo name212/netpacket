@@ -23,7 +23,6 @@ func TestShiftOnTab(t *testing.T) {
 	assertOneShift("first string\nsecond string", "\tfirst string\n\tsecond string")
 	assertOneShift("first string\nsecond string\n", "\tfirst string\n\tsecond string\n")
 	assertOneShift("\nfirst string\nsecond string\n\n", "\t\n\tfirst string\n\tsecond string\n\t\n")
-
 }
 
 func TestMultipleShiftsOnTab(t *testing.T) {

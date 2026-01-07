@@ -57,9 +57,11 @@ deps: bin bin/golangci-lint bin/gofumpt
 
 lint: bin/golangci-lint
 	./bin/golangci-lint run ./... -c .golangci.yaml
+	cd tests; ../bin/golangci-lint run ./... -c .golangci.yaml
 
 lint/fix: bin/golangci-lint
 	./bin/golangci-lint run ./... -c .golangci.yaml --fix
+	cd tests; ../bin/golangci-lint run ./... -c .golangci.yaml --fix
 
 fmt: bin/gofumpt
 	 ./bin/gofumpt .
