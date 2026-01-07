@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/name212/netpacket"
-	"github.com/name212/netpacket/utils"
+	stringsutils "github.com/name212/netpacket/utils/strings"
 )
 
 type Header struct {
@@ -58,9 +58,9 @@ func (h *Header) Kind() netpacket.Kind {
 func (h *Header) String() string {
 	s := strings.Builder{}
 
-	s.WriteString(utils.FmtLn("Source port: %d", h.SourcePort))
-	s.WriteString(utils.FmtLn("Destination port: %d", h.DestinationPort))
-	s.WriteString(utils.FmtLn("Datagram size: %d", h.Length))
+	s.WriteString(stringsutils.FmtLn("Source port: %d", h.SourcePort))
+	s.WriteString(stringsutils.FmtLn("Destination port: %d", h.DestinationPort))
+	s.WriteString(stringsutils.FmtLn("Datagram size: %d", h.Length))
 	s.WriteString(fmt.Sprintf("Checksum: %d", h.Checksum))
 
 	return s.String()

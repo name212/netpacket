@@ -6,6 +6,7 @@ package udp
 import (
 	"testing"
 
+	"github.com/name212/netpacket/tests"
 	"github.com/name212/netpacket/transport/udp"
 	"github.com/stretchr/testify/require"
 )
@@ -32,4 +33,15 @@ func TestParseUDPHeader(t *testing.T) {
 	require.NotNil(t, header)
 
 	assertHeader(t, header, 55338, 53, 37, 48732)
+
+	// AssertStringer Trim \n from expected
+	// use \n this for better observability (show in code as string present)
+	expectedString := `
+Source port: 55338
+Destination port: 53
+Datagram size: 37
+Checksum: 48732
+`
+
+	tests.AssertStringer(t, header, expectedString)
 }

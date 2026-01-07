@@ -47,6 +47,27 @@ func TestParseIPv4PacketNoData(t *testing.T) {
 	payload, err := v4.ExtractPayload(ipPacket)
 	require.NoError(t, err, "payload should be extracted")
 	require.Empty(t, payload, "payload should be empty")
+
+	// AssertStringer Trim \n from expected
+	// use \n this for better observability (show in code as string present)
+	expectedHeaderString := `
+IPv4 Packet:
+	Header:
+		Source: 192.168.0.104
+		Destination: 192.168.0.1
+		Protocol: TCP
+		TTL: 64
+		Header Size: 20
+		Packet Size: 20
+		Flags:
+			Don't Fragment: true
+			More Fragments: false
+		No options set
+		Checksum: 45542
+	Is transport: true
+	Payload len: 0
+`
+	tests.AssertStringer(t, packet, expectedHeaderString)
 }
 
 func TestParseIPv4PacketNoOptionsWithData(t *testing.T) {
@@ -62,6 +83,27 @@ func TestParseIPv4PacketNoOptionsWithData(t *testing.T) {
 	payload, err := v4.ExtractPayload(icmpValidPacketData)
 	require.NoError(t, err, "payload should be extracted")
 	tests.AssertDataAsBase64(t, expectedPayload, payload, 64)
+
+	// AssertStringer Trim \n from expected
+	// use \n this for better observability (show in code as string present)
+	expectedHeaderString := `
+IPv4 Packet:
+	Header:
+		Source: 10.233.233.1
+		Destination: 8.8.8.8
+		Protocol: ICMP
+		TTL: 64
+		Header Size: 20
+		Packet Size: 84
+		Flags:
+			Don't Fragment: true
+			More Fragments: false
+		No options set
+		Checksum: 30630
+	Is transport: false
+	Payload len: 64
+`
+	tests.AssertStringer(t, packet, expectedHeaderString)
 }
 
 func TestParseIPv4PacketWithOptionsWithData(t *testing.T) {
@@ -102,6 +144,39 @@ func TestParseIPv4PacketWithOptionsWithData(t *testing.T) {
 	payload, err := v4.ExtractPayload(icmpValidPacketData)
 	require.NoError(t, err, "should parse")
 	tests.AssertDataAsBase64(t, expectedPayload, payload, 64)
+
+	// AssertStringer Trim \n from expected
+	// use \n this for better observability (show in code as string present)
+	expectedHeaderString := `
+IPv4 Packet:
+	Header:
+		Source: 175.45.176.0
+		Destination: 149.171.126.11
+		Protocol: ICMP
+		TTL: 254
+		Header Size: 36
+		Packet Size: 100
+		Flags:
+			Don't Fragment: false
+			More Fragments: false
+		Options:
+			Option:
+				Type: NOP(1)
+				Type description: No Operation
+				Full Length: 1
+				No data
+			Option:
+				Type: SEC(130)
+				Type description: Security RIPSO
+				Full Length: 11
+				Hex data:
+					0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+					0x00
+		Checksum: 49632
+	Is transport: false
+	Payload len: 64
+`
+	tests.AssertStringer(t, packet, expectedHeaderString)
 }
 
 func TestGetTransportPacket(t *testing.T) {

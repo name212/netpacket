@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/name212/netpacket/net/ip/v4"
+	"github.com/name212/netpacket/tests"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,6 +44,23 @@ func TestParseIPv4Header(t *testing.T) {
 	require.True(t, flags.DontFragment, "flags should be dont fragment")
 
 	assertNoOptions(t, header)
+
+	// AssertStringer Trim \n from expected
+	// use \n this for better observability (show in code as string present)
+	expectedHeaderString := `
+Source: 192.168.0.104
+Destination: 192.168.0.1
+Protocol: TCP
+TTL: 64
+Header Size: 20
+Packet Size: 60
+Flags:
+	Don't Fragment: true
+	More Fragments: false
+No options set
+Checksum: 45542
+`
+	tests.AssertStringer(t, header, expectedHeaderString)
 }
 
 func TestParseIPv4Options(t *testing.T) {
@@ -76,6 +94,56 @@ func TestParseIPv4Options(t *testing.T) {
 
 	expectedData := bytes.Repeat([]byte{0x00}, 9)
 	require.Equal(t, expectedData, secondOption.GetData(), "data should correct")
+
+	// AssertStringer Trim \n from expected
+	// use \n this for better observability (show in code as string present)
+
+	expectedHeaderString := `
+Source: 175.45.176.0
+Destination: 149.171.126.11
+Protocol: ICMP
+TTL: 254
+Header Size: 36
+Packet Size: 40
+Flags:
+	Don't Fragment: false
+	More Fragments: false
+Options:
+	Option:
+		Type: NOP(1)
+		Type description: No Operation
+		Full Length: 1
+		No data
+	Option:
+		Type: SEC(130)
+		Type description: Security RIPSO
+		Full Length: 11
+		Hex data:
+			0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+			0x00
+Checksum: 49632
+`
+	tests.AssertStringer(t, header, expectedHeaderString)
+
+	expectedFirstOptionString := `
+Option:
+	Type: NOP(1)
+	Type description: No Operation
+	Full Length: 1
+	No data
+`
+	tests.AssertStringer(t, &firstOption, expectedFirstOptionString)
+
+	expectedSecondOptionString := `
+Option:
+	Type: SEC(130)
+	Type description: Security RIPSO
+	Full Length: 11
+	Hex data:
+		0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
+		0x00
+`
+	tests.AssertStringer(t, &secondOption, expectedSecondOptionString)
 }
 
 func assertOptionTypeAndLength(t *testing.T, option v4.Option, tp v4.OptionType, short string, length int) {

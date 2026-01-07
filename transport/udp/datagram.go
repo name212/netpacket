@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/name212/netpacket"
-	"github.com/name212/netpacket/utils"
+	stringsutils "github.com/name212/netpacket/utils/strings"
 )
 
 type Datagram struct {
@@ -62,10 +62,10 @@ func (d *Datagram) GetDestinationPort() int {
 func (d *Datagram) String() string {
 	b := strings.Builder{}
 
-	b.WriteString(utils.FmtLn("UDP Datagram:"))
-	b.WriteString(utils.FmtLnWithTabPrefix("Header:"))
-	b.WriteString(utils.ShiftOnTabs(d.GetHeader().String(), 2))
-	b.WriteString(utils.FmtWithTabsPrefix("Payload len: %d", len(d.GetPayload())))
+	b.WriteString(stringsutils.FmtLn("UDP Datagram:"))
+	b.WriteString(stringsutils.FmtLnWithTabPrefix("Header:"))
+	b.WriteString(stringsutils.ShiftOnTabs(stringsutils.FmtLn(d.GetHeader().String()), 2))
+	b.WriteString(stringsutils.FmtWithTabPrefix("Payload len: %d", len(d.GetPayload())))
 
 	return b.String()
 }
