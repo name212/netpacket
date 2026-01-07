@@ -38,6 +38,19 @@ func TestParseUDPDatagramWithoutPayload(t *testing.T) {
 	payload, err := udp.ExtractPayload(data)
 	require.NoError(t, err, "should extract payload")
 	require.Empty(t, payload, "should extract empty payload")
+
+	// AssertStringer Trim \n from expected
+	// use \n this for better observability (show in code as string present)
+	expectedString := `
+UDP Datagram:
+	Header:
+		Source port: 55338
+		Destination port: 53
+		Datagram size: 37
+		Checksum: 48732
+	Payload len: 0
+`
+	tests.AssertStringer(t, datagram, expectedString)
 }
 
 func TestParseUDPDatagramWithPayload(t *testing.T) {
@@ -60,6 +73,19 @@ func TestParseUDPDatagramWithPayload(t *testing.T) {
 	payload, err := udp.ExtractPayload(data)
 	require.NoError(t, err, "should extract payload")
 	tests.AssertDataAsBase64(t, expectedPayload, payload, payloadLength)
+
+	// AssertStringer Trim \n from expected
+	// use \n this for better observability (show in code as string present)
+	expectedString := `
+UDP Datagram:
+	Header:
+		Source port: 39290
+		Destination port: 53
+		Datagram size: 36
+		Checksum: 48731
+	Payload len: 28
+`
+	tests.AssertStringer(t, datagram, expectedString)
 }
 
 func parseDatagram(t *testing.T, data []byte) *udp.Datagram {

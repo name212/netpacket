@@ -3,7 +3,12 @@
 
 package v4
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+
+	stringsutils "github.com/name212/netpacket/utils/strings"
+)
 
 type OptionType uint8
 
@@ -138,8 +143,27 @@ func (o *Option) TypeLong() string {
 	return getOptionDescription(o.GetType()).long
 }
 
+func (o *Option) writeData(b *strings.Builder) {
+	data := o.GetData()
+	if len(data) == 0 {
+		b.WriteString("\tNo data")
+		return
+	}
+
+	b.WriteString(stringsutils.FmtLnWithTabPrefix("Hex data:"))
+	b.WriteString(stringsutils.ShiftOnTabs(stringsutils.BytesToHexWithWrap(data, 8), 2))
+}
+
 func (o *Option) String() string {
-	return fmt.Sprintf("Option Type: %s(%d), Length: %d, Data: %v", o.TypeShort(), o.GetType(), o.GetLength(), o.GetData())
+	b := strings.Builder{}
+
+	b.WriteString(stringsutils.FmtLn("Option:"))
+	b.WriteString(stringsutils.FmtLnWithTabPrefix("Type: %s", o.TypeShortWithID()))
+	b.WriteString(stringsutils.FmtLnWithTabPrefix("Type description: %s", o.TypeLong()))
+	b.WriteString(stringsutils.FmtLnWithTabPrefix("Full Length: %d", o.GetLength()))
+	o.writeData(&b)
+
+	return b.String()
 }
 
 func (o *Option) wrapError(f string, args ...any) error {

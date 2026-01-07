@@ -1,7 +1,7 @@
 // Copyright 2026
 // license that can be found in the LICENSE file.
 
-package utils
+package strings
 
 import (
 	"fmt"
@@ -23,9 +23,9 @@ func FmtLnWithTabPrefix(f string, args ...any) string {
 	return fmt.Sprintf(f, args...)
 }
 
-// FmtWithTabsPrefix
+// FmtWithTabPrefix
 // Add one tab before format and Sprintf format with arguments
-func FmtWithTabsPrefix(f string, args ...any) string {
+func FmtWithTabPrefix(f string, args ...any) string {
 	f = tabsStr(1) + f
 	return fmt.Sprintf(f, args...)
 }
@@ -43,6 +43,52 @@ func ShiftOnTabs(s string, tabsCount int) string {
 	}
 
 	return tabs + res
+}
+
+// BytesToHexWithWrap
+// returns hex representation of string
+// split by new lines each line has stringLen
+func BytesToHexWithWrap(data []byte, lineLen int) string {
+	dataLen := len(data)
+	if dataLen == 0 {
+		return ""
+	}
+
+	formatLine := func(line []byte) string {
+		lineBuilder := strings.Builder{}
+
+		// 4 char for byte representation like 0xAA
+		// and spaces between bytes representation
+		lineBuilder.Grow(lineLen*4 + len(data))
+
+		for _, ch := range line {
+			lineBuilder.WriteString(fmt.Sprintf("0x%02X ", ch))
+		}
+
+		return strings.TrimSuffix(lineBuilder.String(), " ")
+	}
+
+	if lineLen < 1 || dataLen <= lineLen {
+		return formatLine(data)
+	}
+
+	b := strings.Builder{}
+	// 4 char for byte representation like 0xAA and space separator plus new line
+	// it is approximately
+	b.Grow(dataLen * 6)
+
+	d := data
+	for len(d) >= lineLen {
+		b.WriteString(formatLine(d[0:lineLen]))
+		b.WriteString("\n")
+		d = d[lineLen:]
+	}
+
+	if len(d) > 0 {
+		b.WriteString(formatLine(d))
+	}
+
+	return strings.TrimSuffix(b.String(), "\n")
 }
 
 func tabsStr(count int) string {

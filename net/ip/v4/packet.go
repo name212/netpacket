@@ -12,7 +12,7 @@ import (
 	"github.com/name212/netpacket"
 	"github.com/name212/netpacket/transport/tcp"
 	"github.com/name212/netpacket/transport/udp"
-	"github.com/name212/netpacket/utils"
+	stringsutils "github.com/name212/netpacket/utils/strings"
 )
 
 var ErrNotTransportPacket = errors.New("not transport packet")
@@ -130,12 +130,11 @@ func (p *Packet) TransportPacket() (Transport, error) {
 func (p *Packet) String() string {
 	b := strings.Builder{}
 
-	b.WriteString(utils.FmtLn("IPv4 Packet:"))
-	b.WriteString(utils.FmtLnWithTabPrefix("Header:"))
-	// Header contains trailing \n
-	b.WriteString(utils.ShiftOnTabs(p.GetHeader().String(), 2))
-	b.WriteString(utils.FmtLnWithTabPrefix("Is transport: %v", p.IsTransport()))
-	b.WriteString(utils.FmtLnWithTabPrefix("Payload len: %d", len(p.GetPayload())))
+	b.WriteString(stringsutils.FmtLn("IPv4 Packet:"))
+	b.WriteString(stringsutils.FmtLnWithTabPrefix("Header:"))
+	b.WriteString(stringsutils.ShiftOnTabs(stringsutils.FmtLn(p.GetHeader().String()), 2))
+	b.WriteString(stringsutils.FmtLnWithTabPrefix("Is transport: %v", p.IsTransport()))
+	b.WriteString(stringsutils.FmtWithTabPrefix("Payload len: %d", len(p.GetPayload())))
 
 	return b.String()
 }

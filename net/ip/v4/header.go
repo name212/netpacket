@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/name212/netpacket"
-	"github.com/name212/netpacket/utils"
+	stringsutils "github.com/name212/netpacket/utils/strings"
 )
 
 type Protocol uint8
@@ -186,15 +186,15 @@ func (h *Header) String() string {
 
 	flags := h.GetFlags()
 
-	s.WriteString(utils.FmtLn("Source: %s", h.SourceIP.String()))
-	s.WriteString(utils.FmtLn("Destination: %s", h.DestinationIP.String()))
-	s.WriteString(utils.FmtLn("Protocol: %s", h.ProtocolString()))
-	s.WriteString(utils.FmtLn("TTL: %d", h.TTL))
-	s.WriteString(utils.FmtLn("Header Size: %d", h.HeaderLen()))
-	s.WriteString(utils.FmtLn("Packet Size: %d", h.TotalLength))
-	s.WriteString(utils.FmtLn("Flags:"))
-	s.WriteString(utils.FmtLnWithTabPrefix("Don't Fragment: %v", flags.DontFragment))
-	s.WriteString(utils.FmtLnWithTabPrefix("More Fragments: %v", flags.MoreFragments))
+	s.WriteString(stringsutils.FmtLn("Source: %s", h.SourceIP.String()))
+	s.WriteString(stringsutils.FmtLn("Destination: %s", h.DestinationIP.String()))
+	s.WriteString(stringsutils.FmtLn("Protocol: %s", h.ProtocolString()))
+	s.WriteString(stringsutils.FmtLn("TTL: %d", h.TTL))
+	s.WriteString(stringsutils.FmtLn("Header Size: %d", h.HeaderLen()))
+	s.WriteString(stringsutils.FmtLn("Packet Size: %d", h.TotalLength))
+	s.WriteString(stringsutils.FmtLn("Flags:"))
+	s.WriteString(stringsutils.FmtLnWithTabPrefix("Don't Fragment: %v", flags.DontFragment))
+	s.WriteString(stringsutils.FmtLnWithTabPrefix("More Fragments: %v", flags.MoreFragments))
 	h.writeOptions(&s)
 	s.WriteString(fmt.Sprintf("Checksum: %d", h.Checksum))
 
@@ -207,21 +207,27 @@ func (h *Header) ParseOptions() ([]Option, error) {
 
 func (h *Header) writeOptions(s *strings.Builder) {
 	if h.Options == nil {
-		s.WriteString(utils.FmtLn("No options set"))
+		s.WriteString(stringsutils.FmtLn("No options set"))
 		return
 	}
 
 	opts, err := h.ParseOptions()
 	if err != nil {
-		s.WriteString(utils.FmtLn("Cannot parse options: %v", err))
+		s.WriteString(stringsutils.FmtLn("Cannot parse options: %v", err))
 		return
 	}
 
-	s.WriteString(utils.FmtLn("Options:"))
+	s.WriteString(stringsutils.FmtLn("Options:"))
+
+	optsStringsSlice := make([]string, 0, len(opts))
+
 	for _, opt := range opts {
-		msg := utils.FmtLnWithTabPrefix("%s: data len %d", opt.TypeLong(), len(opt.GetData()))
-		s.WriteString(msg)
+		optsStringsSlice = append(optsStringsSlice, opt.String())
 	}
+
+	optsStr := strings.Join(optsStringsSlice, "\n")
+
+	s.WriteString(stringsutils.ShiftOnTabs(stringsutils.FmtLn(optsStr), 1))
 }
 
 func headerLen(words uint8) int {
