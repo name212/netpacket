@@ -5,12 +5,12 @@ package udp
 
 import (
 	"encoding/binary"
+	"fmt"
 	"strings"
 
+	"github.com/name212/netpacket"
 	"github.com/name212/netpacket/utils"
 )
-
-const headerLength = 8
 
 type Header struct {
 	SourcePort      uint16
@@ -19,6 +19,9 @@ type Header struct {
 	Checksum        uint16
 }
 
+// ParseHeader
+// header datagram from bytes
+// no save any subslices from data in header
 func ParseHeader(data []byte) (*Header, error) {
 	if err := isValidDatagram(data); err != nil {
 		return nil, err
@@ -40,8 +43,16 @@ func (h *Header) GetDestinationPort() int {
 	return int(h.DestinationPort)
 }
 
-func (h *Header) Len() int {
+func (h *Header) DatagramLen() int {
 	return int(h.Length)
+}
+
+func (h *Header) HeaderLen() int {
+	return headerLength
+}
+
+func (h *Header) Kind() netpacket.Kind {
+	return Kind
 }
 
 func (h *Header) String() string {
@@ -49,8 +60,8 @@ func (h *Header) String() string {
 
 	s.WriteString(utils.FmtLn("Source port: %d", h.SourcePort))
 	s.WriteString(utils.FmtLn("Destination port: %d", h.DestinationPort))
-	s.WriteString(utils.FmtLn("Length: %d", h.Length))
-	s.WriteString(utils.FmtLn("Checksum: %d", h.Checksum))
+	s.WriteString(utils.FmtLn("Datagram size: %d", h.Length))
+	s.WriteString(fmt.Sprintf("Checksum: %d", h.Checksum))
 
 	return s.String()
 }

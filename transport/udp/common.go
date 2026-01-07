@@ -3,11 +3,21 @@
 
 package udp
 
-import "github.com/name212/netpacket"
+import (
+	"errors"
+
+	"github.com/name212/netpacket"
+)
+
+const (
+	headerLength = 8
+
+	Kind netpacket.Kind = "UDP"
+)
 
 func isValidDatagram(data []byte) error {
 	if len(data) < headerLength {
-		return netpacket.WrapShortDataErr("UDP datagram")
+		return netpacket.WrapShortDataErr(errors.New("UDP datagram"))
 	}
 
 	return nil

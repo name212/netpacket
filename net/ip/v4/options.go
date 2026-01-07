@@ -71,13 +71,59 @@ const (
 )
 
 type Option struct {
-	Type   uint8
-	Length uint8
-	Data   []byte
+	typeID uint8
+	length uint8
+	data   []byte
+}
+
+func parseOptions(data []byte) ([]Option, error) {
+	if data == nil {
+		return nil, nil
+	}
+
+	res := make([]Option, 0, 4)
+
+	for len(data) > 0 {
+		opt := Option{typeID: data[0]}
+
+		switch opt.GetType() {
+		case OptionEndOfList:
+			return res, nil
+		case OptionNoOperation:
+			opt.length = 1
+			data = data[1:]
+			res = append(res, opt)
+		default:
+			if len(data) < 2 {
+				return nil, opt.wrapError("invalid length. Length %d less than 2", len(data))
+			}
+			opt.length = data[1]
+			intLen := opt.GetLength()
+			if len(data) < intLen {
+				return nil, opt.wrapError("length exceeds remaining IP header size, length %v", intLen)
+			}
+			if intLen <= 2 {
+				return nil, opt.wrapError("invalid length %d. Must be greater than 2", intLen)
+			}
+			opt.data = data[2:intLen]
+			data = data[intLen:]
+			res = append(res, opt)
+		}
+	}
+
+	return res, nil
+}
+
+func (o *Option) GetLength() int {
+	return int(o.length)
+}
+
+func (o *Option) GetData() []byte {
+	return o.data
 }
 
 func (o *Option) GetType() OptionType {
-	return OptionType(o.Type)
+	return OptionType(o.typeID)
 }
 
 func (o *Option) TypeShort() string {
@@ -93,7 +139,12 @@ func (o *Option) TypeLong() string {
 }
 
 func (o *Option) String() string {
-	return fmt.Sprintf("Option Type: %s(%d), Length: %d, Data: %v", o.TypeShort(), o.Type, o.Length, o.Data)
+	return fmt.Sprintf("Option Type: %s(%d), Length: %d, Data: %v", o.TypeShort(), o.GetType(), o.GetLength(), o.GetData())
+}
+
+func (o *Option) wrapError(f string, args ...any) error {
+	f = fmt.Sprintf("option %s: ", o.TypeShortWithID()) + f
+	return fmt.Errorf(f, args...)
 }
 
 type optionDescription struct {

@@ -1,3 +1,6 @@
+// Copyright 2026
+// license that can be found in the LICENSE file.
+
 package netpacket
 
 import (
@@ -6,14 +9,20 @@ import (
 )
 
 var (
+	EmptyPayloadErr      = errors.New("empty payload")
+	NotImplementedErr    = errors.New("not implemented yet")
 	ShortDataErr         = errors.New("data too short")
 	CannotParseHeaderErr = errors.New("cannot parse header")
 )
 
-func WrapShortDataErr(msg string) error {
-	return fmt.Errorf("%w for %s", ShortDataErr, msg)
+func WrapShortDataErr(err error) error {
+	return fmt.Errorf("%w for %w", ShortDataErr, err)
 }
 
-func WrapCannotParseHeaderErr(msg string) error {
-	return fmt.Errorf("%w: %s", CannotParseHeaderErr, msg)
+func WrapCannotParseHeaderErr(err error) error {
+	return fmt.Errorf("%w: %w", CannotParseHeaderErr, err)
+}
+
+func WrapNotImplementedErr(err error) error {
+	return fmt.Errorf("%w: %w", NotImplementedErr, err)
 }
