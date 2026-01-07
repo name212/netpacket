@@ -13,8 +13,8 @@ import (
 func assertHeader(t *testing.T, header *udp.Header, srcPort, dstPort, length, checksum int) {
 	t.Helper()
 
-	require.Equal(t, uint16(srcPort), header.SourcePort, "source port should be %d", srcPort)
-	require.Equal(t, uint16(dstPort), header.DestPort, "destination port should be %d", dstPort)
+	require.Equal(t, srcPort, header.GetSourcePort(), "source port should be %d", srcPort)
+	require.Equal(t, dstPort, header.GetDestinationPort(), "destination port should be %d", dstPort)
 	require.Equal(t, uint16(length), header.Length, "length should be %d", length)
 	require.Equal(t, uint16(checksum), header.Checksum, "checksum should be %d", checksum)
 }

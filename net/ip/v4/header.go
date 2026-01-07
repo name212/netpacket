@@ -13,10 +13,6 @@ import (
 	"github.com/name212/netpacket/utils"
 )
 
-const (
-	minHeaderLength = 20
-)
-
 type Protocol uint8
 
 // 1	Internet Control Message Protocol	ICMP
@@ -66,20 +62,25 @@ type Header struct {
 }
 
 type Flags struct {
+	// IsEvil
+	// first bit of flags. For correct packet should be set to 0 always
+	// ParsePacket check this flag before return Header
 	IsEvil        bool
 	DontFragment  bool
 	MoreFragments bool
 }
 
 // ParseHeader parses the IPv4 header from the given byte slice
+// ParseHeader save slices from data. You should copy data before parse
+// to avoid hold full data in memory
 func ParseHeader(data []byte) (*Header, error) {
-	if len(data) < minHeaderLength {
-		return nil, netpacket.WrapShortDataErr("IPv4 packet")
+	if err := isValidPacket(data); err != nil {
+		return nil, err
 	}
 
 	header := &Header{
 		Version:        data[0] >> 4,
-		IHL:            data[0] & 0x0F,
+		IHL:            extractHeaderWordsLen(data),
 		ToS:            data[1],
 		TotalLength:    binary.BigEndian.Uint16(data[2:4]),
 		Identification: binary.BigEndian.Uint16(data[4:6]),
@@ -131,8 +132,28 @@ func (h *Header) IsValidVersion() bool {
 	return h.Version == 4
 }
 
+func (h *Header) GetSourceIPString() string {
+	return h.SourceIP.String()
+}
+
+func (h *Header) GetSourceIP() net.IP {
+	return h.SourceIP
+}
+
+func (h *Header) GetDestinationIPString() string {
+	return h.DestinationIP.String()
+}
+
+func (h *Header) GetDestinationIP() net.IP {
+	return h.DestinationIP
+}
+
 func (h *Header) GetTotalLen() int {
 	return int(h.TotalLength)
+}
+
+func (h *Header) GetTTL() int {
+	return int(h.TTL)
 }
 
 func (h *Header) GetProtocol() Protocol {
@@ -153,7 +174,11 @@ func (h *Header) ProtocolString() string {
 }
 
 func (h *Header) HeaderLen() int {
-	return int(h.IHL) * 4
+	return headerLen(h.IHL)
+}
+
+func (h *Header) Kind() netpacket.Kind {
+	return Kind
 }
 
 func (h *Header) String() string {
@@ -165,53 +190,19 @@ func (h *Header) String() string {
 	s.WriteString(utils.FmtLn("Destination: %s", h.DestinationIP.String()))
 	s.WriteString(utils.FmtLn("Protocol: %s", h.ProtocolString()))
 	s.WriteString(utils.FmtLn("TTL: %d", h.TTL))
-	s.WriteString(utils.FmtLn("Size: %d", h.TotalLength))
+	s.WriteString(utils.FmtLn("Header Size: %d", h.HeaderLen()))
+	s.WriteString(utils.FmtLn("Packet Size: %d", h.TotalLength))
 	s.WriteString(utils.FmtLn("Flags:"))
 	s.WriteString(utils.FmtLnWithTabPrefix("Don't Fragment: %v", flags.DontFragment))
 	s.WriteString(utils.FmtLnWithTabPrefix("More Fragments: %v", flags.MoreFragments))
 	h.writeOptions(&s)
-	s.WriteString(utils.FmtLn("Checksum: %d", h.Checksum))
+	s.WriteString(fmt.Sprintf("Checksum: %d", h.Checksum))
 
 	return s.String()
 }
 
 func (h *Header) ParseOptions() ([]Option, error) {
-	if h.Options == nil {
-		return nil, nil
-	}
-
-	data := h.Options
-	res := make([]Option, 0, 4)
-
-	for len(data) > 0 {
-		opt := Option{Type: data[0]}
-
-		switch opt.GetType() {
-		case OptionEndOfList: // End of options
-			return res, nil
-		case OptionNoOperation: // 1 byte padding
-			opt.Length = 1
-			data = data[1:]
-			res = append(res, opt)
-		default:
-			shortWithIDDesc := opt.TypeShortWithID()
-			if len(data) < 2 {
-				return nil, fmt.Errorf("invalid option length. Length %d less than 2 for %s", len(data), shortWithIDDesc)
-			}
-			opt.Length = data[1]
-			if len(data) < int(opt.Length) {
-				return nil, fmt.Errorf("IP option length exceeds remaining IP header size, option for %s length %v", shortWithIDDesc, opt.Length)
-			}
-			if opt.Length <= 2 {
-				return nil, fmt.Errorf("invalid IP option type %s length %d. Must be greater than 2", shortWithIDDesc, opt.Length)
-			}
-			opt.Data = data[2:opt.Length]
-			data = data[opt.Length:]
-			res = append(res, opt)
-		}
-	}
-
-	return res, nil
+	return parseOptions(h.Options)
 }
 
 func (h *Header) writeOptions(s *strings.Builder) {
@@ -228,15 +219,25 @@ func (h *Header) writeOptions(s *strings.Builder) {
 
 	s.WriteString(utils.FmtLn("Options:"))
 	for _, opt := range opts {
-		msg := utils.FmtLnWithTabPrefix("%s: data len %d", opt.TypeLong(), len(opt.Data))
+		msg := utils.FmtLnWithTabPrefix("%s: data len %d", opt.TypeLong(), len(opt.GetData()))
 		s.WriteString(msg)
 	}
 }
 
+func headerLen(words uint8) int {
+	return int(words) * 4
+}
+
+func extractHeaderWordsLen(data []byte) uint8 {
+	return data[0] & 0x0F
+}
+
+const bitSet = 1
+
 func parseFlags(f uint8) Flags {
-	evil := utils.CheckBit(f, 0)
-	df := utils.CheckBit(f, 1)
-	mf := utils.CheckBit(f, 2)
+	evil := (f >> 0) == bitSet
+	df := (f >> 1) == bitSet
+	mf := (f >> 2) == bitSet
 
 	return Flags{
 		IsEvil:        evil,

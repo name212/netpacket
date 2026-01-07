@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/name212/netpacket/v4"
+	"github.com/name212/netpacket/net/ip/v4"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +18,7 @@ func TestParseIPv4HeaderShortData(t *testing.T) {
 
 	header, err := v4.ParseHeader(ipPacket)
 	require.Error(t, err, "should not parse header")
-	require.Nil(t, header)
+	require.Nil(t, header, "header should be nil")
 }
 
 func TestParseIPv4Header(t *testing.T) {
@@ -34,7 +34,7 @@ func TestParseIPv4Header(t *testing.T) {
 
 	assertSourceAndDestinationAndProto(t, header, "192.168.0.104", v4.ProtocolTCP, "192.168.0.1", "TCP")
 
-	require.Equal(t, uint8(64), header.TTL, "TTL should be 64")
+	require.Equal(t, 64, header.GetTTL(), "TTL should be 64")
 	require.Equal(t, uint16(45542), header.Checksum, "checksum should be 45542")
 
 	flags := header.GetFlags()
@@ -67,26 +67,26 @@ func TestParseIPv4Options(t *testing.T) {
 	firstOption := options[0]
 
 	assertOptionTypeAndLength(t, firstOption, v4.OptionNoOperation, "NOP", 1)
-	require.Empty(t, firstOption.Data, "data should be empty for NOP")
+	require.Empty(t, firstOption.GetData(), "data should be empty for NOP")
 
 	secondOption := options[1]
 
 	assertOptionTypeAndLength(t, secondOption, v4.OptionSecurityRIPSO, "SEC", 11)
-	require.Len(t, secondOption.Data, 9, "data len should be 9 for SEC")
+	require.Len(t, secondOption.GetData(), 9, "data len should be 9 for SEC")
 
 	expectedData := bytes.Repeat([]byte{0x00}, 9)
-	require.Equal(t, expectedData, secondOption.Data, "data should correct")
+	require.Equal(t, expectedData, secondOption.GetData(), "data should correct")
 }
 
-func assertOptionTypeAndLength(t *testing.T, option v4.Option, tp v4.OptionType, short string, length uint8) {
+func assertOptionTypeAndLength(t *testing.T, option v4.Option, tp v4.OptionType, short string, length int) {
 	t.Helper()
 
 	require.Equal(t, tp, option.GetType(), "option type should be %d", option.GetType())
-	require.Equal(t, length, option.Length, "option length should be %d", length)
+	require.Equal(t, length, option.GetLength(), "option length should be %d", length)
 	require.Equal(t, short, option.TypeShort(), "option type should be %s", short)
 }
 
-func parseHeader(t *testing.T, data []byte, totalLen uint16) *v4.Header {
+func parseHeader(t *testing.T, data []byte, totalLen int) *v4.Header {
 	t.Helper()
 
 	header, err := v4.ParseHeader(data)

@@ -32,8 +32,8 @@ func TestParseUDPDatagramWithoutPayload(t *testing.T) {
 
 	datagram := parseDatagram(t, data)
 
-	assertHeader(t, datagram.Header, 55338, 53, 37, 48732)
-	require.Empty(t, datagram.Payload, "should parse empty payload")
+	assertHeader(t, datagram.GetHeader(), 55338, 53, 37, 48732)
+	require.Empty(t, datagram.GetPayload(), "should parse empty payload")
 
 	payload, err := udp.ExtractPayload(data)
 	require.NoError(t, err, "should extract payload")
@@ -51,11 +51,11 @@ func TestParseUDPDatagramWithPayload(t *testing.T) {
 
 	datagram := parseDatagram(t, data)
 
-	assertHeader(t, datagram.Header, 39290, 53, 36, 48731)
+	assertHeader(t, datagram.GetHeader(), 39290, 53, 36, 48731)
 
 	expectedPayload := "QiIBAAABAAAAAAAABmdvb2dsZQNjb20AAAEAAQ=="
 
-	tests.AssertDataAsBase64(t, expectedPayload, datagram.Payload, payloadLength)
+	tests.AssertDataAsBase64(t, expectedPayload, datagram.GetPayload(), payloadLength)
 
 	payload, err := udp.ExtractPayload(data)
 	require.NoError(t, err, "should extract payload")

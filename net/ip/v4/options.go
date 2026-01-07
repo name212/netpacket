@@ -71,13 +71,59 @@ const (
 )
 
 type Option struct {
-	Type   uint8
-	Length uint8
-	Data   []byte
+	typeID uint8
+	length uint8
+	data   []byte
+}
+
+func parseOptions(data []byte) ([]Option, error) {
+	if data == nil {
+		return nil, nil
+	}
+
+	res := make([]Option, 0, 4)
+
+	for len(data) > 0 {
+		opt := Option{typeID: data[0]}
+
+		switch opt.GetType() {
+		case OptionEndOfList:
+			return res, nil
+		case OptionNoOperation:
+			opt.length = 1
+			data = data[1:]
+			res = append(res, opt)
+		default:
+			if len(data) < 2 {
+				return nil, opt.wrapError("invalid length. Length %d less than 2", len(data))
+			}
+			opt.length = data[1]
+			intLen := opt.GetLength()
+			if len(data) < intLen {
+				return nil, opt.wrapError("length exceeds remaining IP header size, length %v", intLen)
+			}
+			if intLen <= 2 {
+				return nil, opt.wrapError("invalid length %d. Must be greater than 2", intLen)
+			}
+			opt.data = data[2:intLen]
+			data = data[intLen:]
+			res = append(res, opt)
+		}
+	}
+
+	return res, nil
+}
+
+func (o *Option) GetLength() int {
+	return int(o.length)
+}
+
+func (o *Option) GetData() []byte {
+	return o.data
 }
 
 func (o *Option) GetType() OptionType {
-	return OptionType(o.Type)
+	return OptionType(o.typeID)
 }
 
 func (o *Option) TypeShort() string {
@@ -93,7 +139,12 @@ func (o *Option) TypeLong() string {
 }
 
 func (o *Option) String() string {
-	return fmt.Sprintf("Option Type: %s(%d), Length: %d, Data: %v", o.TypeShort(), o.Type, o.Length, o.Data)
+	return fmt.Sprintf("Option Type: %s(%d), Length: %d, Data: %v", o.TypeShort(), o.GetType(), o.GetLength(), o.GetData())
+}
+
+func (o *Option) wrapError(f string, args ...any) error {
+	f = fmt.Sprintf("option %s: ", o.TypeShortWithID()) + f
+	return fmt.Errorf(f, args...)
 }
 
 type optionDescription struct {
@@ -102,123 +153,123 @@ type optionDescription struct {
 }
 
 var optionTypesMap = map[OptionType]*optionDescription{
-	OptionEndOfList: &optionDescription{
+	OptionEndOfList: {
 		short: "EOOL",
 		long:  "End Of List",
 	},
-	OptionNoOperation: &optionDescription{
+	OptionNoOperation: {
 		short: "NOP",
 		long:  "No Operation",
 	},
-	OptionSecurityDefunct: &optionDescription{
+	OptionSecurityDefunct: {
 		short: "SEC",
 		long:  "Security Defunct",
 	},
-	OptionRecordRoute: &optionDescription{
+	OptionRecordRoute: {
 		short: "ROR",
 		long:  "Record Route",
 	},
-	OptionExperimentalMeasurement: &optionDescription{
+	OptionExperimentalMeasurement: {
 		short: "EXP",
 		long:  "Experimental Measurement",
 	},
-	OptionMTUProbe: &optionDescription{
+	OptionMTUProbe: {
 		short: "MTUP",
 		long:  "MTU Probe",
 	},
-	OptionMTUReply: &optionDescription{
+	OptionMTUReply: {
 		short: "MTUR",
 		long:  "MTU Reply",
 	},
-	OptionENCODE: &optionDescription{
+	OptionENCODE: {
 		short: "ENCODE",
 		long:  "ENCODE",
 	},
-	OptionQuickStart: &optionDescription{
+	OptionQuickStart: {
 		short: "QS",
 		long:  "Quick Start",
 	},
-	OptionRFC3692StyleExperimentFirst: &optionDescription{
+	OptionRFC3692StyleExperimentFirst: {
 		short: "EXP",
 		long:  "RFC3692 Experiment First",
 	},
-	OptionTimeStamp: &optionDescription{
+	OptionTimeStamp: {
 		short: "TS",
 		long:  "Timestamp",
 	},
-	OptionTraceroute: &optionDescription{
+	OptionTraceroute: {
 		short: "TR",
 		long:  "Traceroute",
 	},
-	OptionRFC3692StyleExperimentSecond: &optionDescription{
+	OptionRFC3692StyleExperimentSecond: {
 		short: "EXP",
 		long:  "RFC3692 Experiment Second",
 	},
-	OptionSecurityRIPSO: &optionDescription{
+	OptionSecurityRIPSO: {
 		short: "SEC",
 		long:  "Security RIPSO",
 	},
-	OptionLooseSourceRoute: &optionDescription{
+	OptionLooseSourceRoute: {
 		short: "LSR",
 		long:  "Loose Source Route",
 	},
-	OptionExtendedSecurityRIPSO: &optionDescription{
+	OptionExtendedSecurityRIPSO: {
 		short: "E-SEC",
 		long:  "Extended Security (RIPSO)",
 	},
-	OptionCommercialIPSecurityOption: &optionDescription{
+	OptionCommercialIPSecurityOption: {
 		short: "CIPSO",
 		long:  "Commercial IP Security Option",
 	},
-	OptionStreamID: &optionDescription{
+	OptionStreamID: {
 		short: "SID",
 		long:  "Stream ID",
 	},
-	OptionStrictSourceRoute: &optionDescription{
+	OptionStrictSourceRoute: {
 		short: "SSR",
 		long:  "Strict Source Route",
 	},
-	OptionExperimentalAccessControl: &optionDescription{
+	OptionExperimentalAccessControl: {
 		short: "VISA",
 		long:  "Experimental Access Control",
 	},
-	OptionIMITrafficDescriptor: &optionDescription{
+	OptionIMITrafficDescriptor: {
 		short: "IMITD",
 		long:  "IMI Traffic Descriptor",
 	},
-	OptionExtendedInternetProtocol: &optionDescription{
+	OptionExtendedInternetProtocol: {
 		short: "EIP",
 		long:  "Extended Internet Protocol",
 	},
-	OptionAddressExtension: &optionDescription{
+	OptionAddressExtension: {
 		short: "ADDEXT",
 		long:  "Address Extension",
 	},
-	OptionRouterAlert: &optionDescription{
+	OptionRouterAlert: {
 		short: "RTRALT",
 		long:  "Router Alert",
 	},
-	OptionSelectiveDirectedBroadcast: &optionDescription{
+	OptionSelectiveDirectedBroadcast: {
 		short: "SDB",
 		long:  "Selective Directed Broadcast",
 	},
-	OptionDynamicPacketState: &optionDescription{
+	OptionDynamicPacketState: {
 		short: "DPS",
 		long:  "Dynamic Packet State",
 	},
-	OptionUpstreamMulticastPacket: &optionDescription{
+	OptionUpstreamMulticastPacket: {
 		short: "UMP",
 		long:  "Upstream Multicast Packet",
 	},
-	OptionRFC3692StyleExperimentThird: &optionDescription{
+	OptionRFC3692StyleExperimentThird: {
 		short: "EXP",
 		long:  "RFC3692 Experiment Third",
 	},
-	OptionExperimentalFlowControl: &optionDescription{
+	OptionExperimentalFlowControl: {
 		short: "EXPF",
 		long:  "Experimental Flow Control",
 	},
-	OptionRFC3692StyleExperimentFour: &optionDescription{
+	OptionRFC3692StyleExperimentFour: {
 		short: "EXP",
 		long:  "RFC3692 Experiment Four",
 	},
