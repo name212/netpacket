@@ -9,20 +9,20 @@ import (
 )
 
 var (
-	EmptyPayloadErr      = errors.New("empty payload")
-	NotImplementedErr    = errors.New("not implemented yet")
-	ShortDataErr         = errors.New("data too short")
-	CannotParseHeaderErr = errors.New("cannot parse header")
+	ErrEmptyPayload      = errors.New("empty payload")
+	ErrNotImplemented    = errors.New("not implemented yet")
+	ErrShortData         = errors.New("data too short")
+	ErrCannotParseHeader = errors.New("cannot parse header")
 )
 
 func WrapShortDataErr(err error) error {
-	return fmt.Errorf("%w for %w", ShortDataErr, err)
+	return fmt.Errorf("%w for %w", ErrShortData, err)
 }
 
 func WrapCannotParseHeaderErr(err error) error {
-	return fmt.Errorf("%w: %w", CannotParseHeaderErr, err)
+	return fmt.Errorf("%w: %w", ErrCannotParseHeader, err)
 }
 
 func WrapNotImplementedErr(err error) error {
-	return fmt.Errorf("%w: %w", NotImplementedErr, err)
+	return fmt.Errorf("%w: %w", ErrNotImplemented, err)
 }

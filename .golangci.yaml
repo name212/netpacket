@@ -59,6 +59,8 @@ linters:
           disabled: false
           exclude: [""]
           arguments:
+            - [] # AllowList
+            - [] # DenyList
             - - skip-initialism-name-checks: false
                 upper-case-const: false
                 skip-package-name-checks: true

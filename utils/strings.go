@@ -11,7 +11,7 @@ import (
 // FmtLn
 // Add new line to format string and Sprintf format with arguments
 func FmtLn(f string, args ...any) string {
-	f = f + "\n"
+	f += "\n"
 	return fmt.Sprintf(f, args...)
 }
 

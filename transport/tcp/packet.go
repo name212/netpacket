@@ -5,7 +5,6 @@ package tcp
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/name212/netpacket"
 )
@@ -32,38 +31,40 @@ func ParsePacket(data []byte) (*Packet, error) {
 	}, nil
 }
 
-func (d *Packet) GetPayload() []byte {
-	return d.payload
+func (p *Packet) GetPayload() []byte {
+	return p.payload
 }
 
-func (d *Packet) GetHeader() *Header {
-	return d.header
+func (p *Packet) GetHeader() *Header {
+	return p.header
 }
 
 func (p *Packet) GetHeaderData() []byte {
 	return p.headerData
 }
 
-func (d *Packet) Kind() netpacket.Kind {
+func (p *Packet) Kind() netpacket.Kind {
 	return Kind
 }
 
-func (d *Packet) GetSourcePort() int {
+func (p *Packet) GetSourcePort() int {
 	// todo implement
 	return 0
 }
 
-func (d *Packet) GetDestinationPort() int {
+func (p *Packet) GetDestinationPort() int {
 	// todo implement
 	return 0
 }
 
-func (d *Packet) String() string {
+func (p *Packet) String() string {
 	// todo implement
-	return fmt.Sprintf("TCP Packet:\n\tNot implemented yet")
+	return "TCP Packet:\n\tNot implemented yet"
 }
 
-// ExtractPayload
+// ExtractPayload extract payload from data without full parsing header
+// ExtractPayload returns subslice from data. You should copy data before parse
+// to avoid hold full data in memory
 // Warning! TODO not implemented
 func ExtractPayload(data []byte) ([]byte, error) {
 	return nil, netpacket.WrapNotImplementedErr(errors.New("TCP"))

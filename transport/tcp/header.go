@@ -3,8 +3,6 @@
 
 package tcp
 
-import "fmt"
-
 type Header struct{}
 
 // ParseHeader
@@ -22,5 +20,5 @@ func (h *Header) HeaderLen() int {
 
 func (h *Header) String() string {
 	// todo need implementation
-	return fmt.Sprintf("TCP header: Not implemented yet")
+	return "TCP header: Not implemented yet"
 }

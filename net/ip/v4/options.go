@@ -153,123 +153,123 @@ type optionDescription struct {
 }
 
 var optionTypesMap = map[OptionType]*optionDescription{
-	OptionEndOfList: &optionDescription{
+	OptionEndOfList: {
 		short: "EOOL",
 		long:  "End Of List",
 	},
-	OptionNoOperation: &optionDescription{
+	OptionNoOperation: {
 		short: "NOP",
 		long:  "No Operation",
 	},
-	OptionSecurityDefunct: &optionDescription{
+	OptionSecurityDefunct: {
 		short: "SEC",
 		long:  "Security Defunct",
 	},
-	OptionRecordRoute: &optionDescription{
+	OptionRecordRoute: {
 		short: "ROR",
 		long:  "Record Route",
 	},
-	OptionExperimentalMeasurement: &optionDescription{
+	OptionExperimentalMeasurement: {
 		short: "EXP",
 		long:  "Experimental Measurement",
 	},
-	OptionMTUProbe: &optionDescription{
+	OptionMTUProbe: {
 		short: "MTUP",
 		long:  "MTU Probe",
 	},
-	OptionMTUReply: &optionDescription{
+	OptionMTUReply: {
 		short: "MTUR",
 		long:  "MTU Reply",
 	},
-	OptionENCODE: &optionDescription{
+	OptionENCODE: {
 		short: "ENCODE",
 		long:  "ENCODE",
 	},
-	OptionQuickStart: &optionDescription{
+	OptionQuickStart: {
 		short: "QS",
 		long:  "Quick Start",
 	},
-	OptionRFC3692StyleExperimentFirst: &optionDescription{
+	OptionRFC3692StyleExperimentFirst: {
 		short: "EXP",
 		long:  "RFC3692 Experiment First",
 	},
-	OptionTimeStamp: &optionDescription{
+	OptionTimeStamp: {
 		short: "TS",
 		long:  "Timestamp",
 	},
-	OptionTraceroute: &optionDescription{
+	OptionTraceroute: {
 		short: "TR",
 		long:  "Traceroute",
 	},
-	OptionRFC3692StyleExperimentSecond: &optionDescription{
+	OptionRFC3692StyleExperimentSecond: {
 		short: "EXP",
 		long:  "RFC3692 Experiment Second",
 	},
-	OptionSecurityRIPSO: &optionDescription{
+	OptionSecurityRIPSO: {
 		short: "SEC",
 		long:  "Security RIPSO",
 	},
-	OptionLooseSourceRoute: &optionDescription{
+	OptionLooseSourceRoute: {
 		short: "LSR",
 		long:  "Loose Source Route",
 	},
-	OptionExtendedSecurityRIPSO: &optionDescription{
+	OptionExtendedSecurityRIPSO: {
 		short: "E-SEC",
 		long:  "Extended Security (RIPSO)",
 	},
-	OptionCommercialIPSecurityOption: &optionDescription{
+	OptionCommercialIPSecurityOption: {
 		short: "CIPSO",
 		long:  "Commercial IP Security Option",
 	},
-	OptionStreamID: &optionDescription{
+	OptionStreamID: {
 		short: "SID",
 		long:  "Stream ID",
 	},
-	OptionStrictSourceRoute: &optionDescription{
+	OptionStrictSourceRoute: {
 		short: "SSR",
 		long:  "Strict Source Route",
 	},
-	OptionExperimentalAccessControl: &optionDescription{
+	OptionExperimentalAccessControl: {
 		short: "VISA",
 		long:  "Experimental Access Control",
 	},
-	OptionIMITrafficDescriptor: &optionDescription{
+	OptionIMITrafficDescriptor: {
 		short: "IMITD",
 		long:  "IMI Traffic Descriptor",
 	},
-	OptionExtendedInternetProtocol: &optionDescription{
+	OptionExtendedInternetProtocol: {
 		short: "EIP",
 		long:  "Extended Internet Protocol",
 	},
-	OptionAddressExtension: &optionDescription{
+	OptionAddressExtension: {
 		short: "ADDEXT",
 		long:  "Address Extension",
 	},
-	OptionRouterAlert: &optionDescription{
+	OptionRouterAlert: {
 		short: "RTRALT",
 		long:  "Router Alert",
 	},
-	OptionSelectiveDirectedBroadcast: &optionDescription{
+	OptionSelectiveDirectedBroadcast: {
 		short: "SDB",
 		long:  "Selective Directed Broadcast",
 	},
-	OptionDynamicPacketState: &optionDescription{
+	OptionDynamicPacketState: {
 		short: "DPS",
 		long:  "Dynamic Packet State",
 	},
-	OptionUpstreamMulticastPacket: &optionDescription{
+	OptionUpstreamMulticastPacket: {
 		short: "UMP",
 		long:  "Upstream Multicast Packet",
 	},
-	OptionRFC3692StyleExperimentThird: &optionDescription{
+	OptionRFC3692StyleExperimentThird: {
 		short: "EXP",
 		long:  "RFC3692 Experiment Third",
 	},
-	OptionExperimentalFlowControl: &optionDescription{
+	OptionExperimentalFlowControl: {
 		short: "EXPF",
 		long:  "Experimental Flow Control",
 	},
-	OptionRFC3692StyleExperimentFour: &optionDescription{
+	OptionRFC3692StyleExperimentFour: {
 		short: "EXP",
 		long:  "RFC3692 Experiment Four",
 	},

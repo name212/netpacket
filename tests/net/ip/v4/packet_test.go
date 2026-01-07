@@ -109,7 +109,7 @@ func TestGetTransportPacket(t *testing.T) {
 		packet := icmpValidPacket(t)
 		_, err := packet.TransportPacket()
 		require.Error(t, err, "shouldn't be able to get transport packet")
-		require.ErrorIs(t, err, v4.NotTransportPacketErr, "should not implemented")
+		require.ErrorIs(t, err, v4.ErrNotTransportPacket, "should not implemented")
 		require.Contains(t, err.Error(), "not transport packet")
 	})
 

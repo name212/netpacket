@@ -15,7 +15,7 @@ import (
 	"github.com/name212/netpacket/utils"
 )
 
-var NotTransportPacketErr = errors.New("not transport packet")
+var ErrNotTransportPacket = errors.New("not transport packet")
 
 type Transport interface {
 	GetSourcePort() int
@@ -99,11 +99,11 @@ func (p *Packet) IsTransport() bool {
 }
 
 // TransportPacket
-// returns NotTransportPacketErr error if packet is not UDP or TCP
+// returns ErrNotTransportPacket error if packet is not UDP or TCP
 func (p *Packet) TransportPacket() (Transport, error) {
 	payload := p.GetPayload()
 	if len(payload) == 0 {
-		return nil, netpacket.WrapShortDataErr(netpacket.EmptyPayloadErr)
+		return nil, netpacket.WrapShortDataErr(netpacket.ErrEmptyPayload)
 	}
 
 	header := p.GetHeader()
@@ -117,7 +117,7 @@ func (p *Packet) TransportPacket() (Transport, error) {
 	case ProtocolUDP:
 		inner, err = udp.ParseDatagram(payload)
 	default:
-		return nil, fmt.Errorf("%w %s", NotTransportPacketErr, header.ProtocolString())
+		return nil, fmt.Errorf("%w %s", ErrNotTransportPacket, header.ProtocolString())
 	}
 
 	if err != nil {
