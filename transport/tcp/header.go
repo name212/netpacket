@@ -3,6 +3,8 @@
 
 package tcp
 
+import "github.com/name212/netpacket"
+
 type Header struct{}
 
 // ParseHeader
@@ -16,6 +18,10 @@ func ParseHeader(data []byte) (*Header, error) {
 func (h *Header) HeaderLen() int {
 	// todo need implementation
 	return 0
+}
+
+func (h *Header) Kind() netpacket.Kind {
+	return Kind
 }
 
 func (h *Header) String() string {

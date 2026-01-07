@@ -16,6 +16,8 @@ type Kinder interface {
 
 type Header interface {
 	fmt.Stringer
+	Kinder
+
 	HeaderLen() int
 }
 
