@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Run test action
-      uses: name212/action-dynamic-uses@dc77a3349fecbd50c85ee651868ac03444af877a # v3
+      uses: name212/action-dynamic-uses@81dc7108cd5145a4faec93ec0df1c643e34cbf79 # v4
       with:
         uses: 'dir:makefile-go/.github/actions/test'
         checkout_ref: ${{ github.event.pull_request.head.sha }}
