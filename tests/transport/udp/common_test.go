@@ -6,8 +6,9 @@ package udp
 import (
 	"testing"
 
-	"github.com/name212/netpacket/transport/udp"
 	"github.com/stretchr/testify/require"
+
+	"github.com/name212/netpacket/transport/udp"
 )
 
 func assertHeader(t *testing.T, header *udp.Header, srcPort, dstPort, length, checksum int) {

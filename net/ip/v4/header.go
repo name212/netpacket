@@ -196,7 +196,7 @@ func (h *Header) String() string {
 	s.WriteString(stringsutils.FmtLnWithTabPrefix("Don't Fragment: %v", flags.DontFragment))
 	s.WriteString(stringsutils.FmtLnWithTabPrefix("More Fragments: %v", flags.MoreFragments))
 	h.writeOptions(&s)
-	s.WriteString(fmt.Sprintf("Checksum: %d", h.Checksum))
+	s.WriteString(fmt.Sprintf("Checksum: %d", h.Checksum)) //nolint:staticcheck
 
 	return s.String()
 }

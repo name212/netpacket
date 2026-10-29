@@ -6,8 +6,9 @@ package v4
 import (
 	"testing"
 
-	"github.com/name212/netpacket/net/ip/v4"
 	"github.com/stretchr/testify/require"
+
+	v4 "github.com/name212/netpacket/net/ip/v4"
 )
 
 func assertSourceAndDestinationAndProto(t *testing.T, header *v4.Header, source string, protocol v4.Protocol, destination string, protocolStr string) {
