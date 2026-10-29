@@ -62,7 +62,7 @@ func BytesToHexWithWrap(data []byte, lineLen int) string {
 		lineBuilder.Grow(lineLen*4 + len(data))
 
 		for _, ch := range line {
-			lineBuilder.WriteString(fmt.Sprintf("0x%02X ", ch))
+			lineBuilder.WriteString(fmt.Sprintf("0x%02X ", ch)) //nolint:staticcheck
 		}
 
 		return strings.TrimSuffix(lineBuilder.String(), " ")

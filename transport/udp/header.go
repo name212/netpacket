@@ -61,7 +61,7 @@ func (h *Header) String() string {
 	s.WriteString(stringsutils.FmtLn("Source port: %d", h.SourcePort))
 	s.WriteString(stringsutils.FmtLn("Destination port: %d", h.DestinationPort))
 	s.WriteString(stringsutils.FmtLn("Datagram size: %d", h.Length))
-	s.WriteString(fmt.Sprintf("Checksum: %d", h.Checksum))
+	s.WriteString(fmt.Sprintf("Checksum: %d", h.Checksum)) //nolint:staticcheck
 
 	return s.String()
 }

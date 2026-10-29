@@ -6,8 +6,9 @@ package udp
 import (
 	"testing"
 
-	"github.com/name212/netpacket/transport/udp"
 	"github.com/stretchr/testify/require"
+
+	"github.com/name212/netpacket/transport/udp"
 
 	"github.com/name212/netpacket/tests"
 )

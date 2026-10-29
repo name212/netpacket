@@ -6,11 +6,13 @@ package v4
 import (
 	"testing"
 
-	"github.com/name212/netpacket"
-	"github.com/name212/netpacket/net/ip/v4"
-	"github.com/name212/netpacket/tests"
-	"github.com/name212/netpacket/transport/udp"
 	"github.com/stretchr/testify/require"
+
+	"github.com/name212/netpacket"
+	v4 "github.com/name212/netpacket/net/ip/v4"
+	"github.com/name212/netpacket/transport/udp"
+
+	"github.com/name212/netpacket/tests"
 )
 
 func TestParseIPv4PacketFailIfDataShort(t *testing.T) {
