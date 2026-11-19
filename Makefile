@@ -6,3 +6,5 @@ include $(CURDIR)/makefile-go/include.mk.inc
 export HELP_LIBRARIES_FIRST = true
 
 export HELP_LIBRARIES_OUT = $(CURDIR)/makefile-go
+
+repo/upgrade/makefile-go: go/upgrade/module
