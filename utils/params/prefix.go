@@ -7,14 +7,14 @@ import (
 
 type (
 	ArgsFunc func(...string) []string
-	ArgFunc func(string) string
-	EnvFunc func(string) string
+	ArgFunc  func(string) string
+	EnvFunc  func(string) string
 )
 
 func ArgsWithPrefixFunc(argPrefix string) ArgsFunc {
 	argPrefix = strings.Trim(argPrefix, "-")
 
-	return func (args ...string) []string {
+	return func(args ...string) []string {
 		return argsWithPrefix(argPrefix, args...)
 	}
 }
@@ -26,7 +26,6 @@ func ArgWithPrefixFunc(argPrefix string) ArgFunc {
 		return fn(a)[0]
 	}
 }
-
 
 func EnvWithPrefixFunc(envPrefix string) EnvFunc {
 	envPrefix = strings.Trim(envPrefix, "_")
@@ -59,11 +58,11 @@ func ArgsOrDefault(passed, def []string, panicMsg string) []string {
 }
 
 var (
-	dummyArgsFunc ArgsFunc = func (args... string) []string {
+	dummyArgsFunc ArgsFunc = func(args ...string) []string {
 		return argsWithPrefix("", args...)
 	}
 
-	dummyEnvFunc EnvFunc = func (env string) string {
+	dummyEnvFunc EnvFunc = func(env string) string {
 		return envWithPrefix("", env)
 	}
 )
@@ -72,7 +71,7 @@ func argsWithPrefix(argPrefix string, argName ...string) []string {
 	if len(argName) == 0 {
 		panic("pass empty args to ArgsFunc")
 	}
-	
+
 	res := make([]string, 0, len(argName))
 
 	for _, a := range argName {
