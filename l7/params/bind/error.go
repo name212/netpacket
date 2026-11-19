@@ -36,3 +36,7 @@ func appendErrForBind(err error, f string, args ...any) error {
 
 	return curErr
 }
+
+func appendErrForBindAsStr(err error, s string) error {
+	return appendErrForBind(err, "%s", s)
+}

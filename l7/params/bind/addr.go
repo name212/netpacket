@@ -84,7 +84,7 @@ func GetBindAddress(f *AddrFlags) (string, error) {
 
 	if bindFullAddr != "" {
 		if err := ValidateBindFullAddr(bindFullAddr); err != nil {
-			return "", fmt.Errorf("%s: %w", f.params.help(err.Error()))
+			return "", fmt.Errorf("%s", f.params.help(err.Error()))
 		}
 
 		return bindFullAddr, nil
@@ -93,11 +93,11 @@ func GetBindAddress(f *AddrFlags) (string, error) {
 	var errPortHostEmpty error
 
 	if bindHost == "" {
-		errPortHostEmpty = appendErrForBind(errPortHostEmpty, f.params.errMsgHost())
+		errPortHostEmpty = appendErrForBindAsStr(errPortHostEmpty, f.params.errMsgHost())
 	}
 
 	if bindPort == "" {
-		errPortHostEmpty = appendErrForBind(errPortHostEmpty, f.params.errMsgPort())
+		errPortHostEmpty = appendErrForBindAsStr(errPortHostEmpty, f.params.errMsgPort())
 	}
 
 	if errPortHostEmpty != nil {
@@ -112,11 +112,11 @@ func GetBindAddress(f *AddrFlags) (string, error) {
 	var errValidate error
 
 	if err := ValidateBindHost(bindHost); err != nil {
-		errValidate = appendErrForBind(errValidate, err.Error())
+		errValidate = appendErrForBindAsStr(errValidate, err.Error())
 	}
 
 	if err := ValidateBindPort(bindPort); err != nil {
-		errValidate = appendErrForBind(errValidate, err.Error())
+		errValidate = appendErrForBindAsStr(errValidate, err.Error())
 	}
 
 	if errValidate != nil {
