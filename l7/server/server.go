@@ -33,15 +33,38 @@ type listener interface {
 	shutdown() error
 }
 
-func newServer(bindAddr *bind.Addr, handler http.Handler, logger *log.Logger) *server {
+func newServer(bindAddr *bind.Addr, handler http.Handler, logger *log.Logger, opts *ServerOpts) (*server, error) {
 	s := &http.Server{
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      30 * time.Second,
-		ReadHeaderTimeout: 30 * time.Second,
-		MaxHeaderBytes:    16 * 1024,
-		ErrorLog:          logger.ServerErrorLogger(),
-		Handler:           handler,
+		ReadTimeout:       opts.timeouts.read,
+		ReadHeaderTimeout: opts.timeouts.readHeader,
+		WriteTimeout:      opts.timeouts.write,
+
+		Handler: handler,
+
+		MaxHeaderBytes:               opts.headersOpts.maxHeaderBytes,
+		MaxHeaderValueCount:          opts.headersOpts.maxHeaderValueCount,
+		DisableGeneralOptionsHandler: opts.headersOpts.disableOptionsHandler,
+
+		Protocols: opts.protocols,
 	}
+
+	if opts.timeouts.idle > 0 {
+		s.IdleTimeout = opts.timeouts.idle
+	}
+
+	if opts.http2 != nil {
+		if !opts.protocols.UnencryptedHTTP2() && opts.tls == nil {
+			return nil, fmt.Errorf("tls config not passed when http2 enabled")
+		}
+
+		s.HTTP2 = opts.http2.cfg
+	}
+
+	if opts.tls != nil {
+		s.TLSConfig = opts.tls
+	}
+
+	s.ErrorLog = logger.ServerErrorLogger()
 
 	var l listener
 
@@ -56,7 +79,7 @@ func newServer(bindAddr *bind.Addr, handler http.Handler, logger *log.Logger) *s
 		stopped:    &atomic.Bool{},
 		logger:     logger,
 		l:          l,
-	}
+	}, nil
 }
 
 func (s *server) start(ctx context.Context) error {

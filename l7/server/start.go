@@ -35,7 +35,10 @@ func Start(ctx context.Context, bindAddr *bind.Addr, opts ...ServerOpt) error {
 
 	handler := getHandler(mParams)
 
-	s := newServer(bindAddr, handler, logger)
+	s, err := newServer(bindAddr, handler, logger, serverOpts)
+	if err != nil {
+		return err
+	}
 
 	return s.start(ctx)
 }

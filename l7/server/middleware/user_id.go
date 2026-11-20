@@ -25,7 +25,7 @@ func SetCtxUserID(next http.Handler, consumer ...UserIDConsumer) http.Handler {
 }
 
 func getUserIDConsumer(consumer []UserIDConsumer) UserIDConsumer {
-	c := readUserNameFromHeader
+	c := ReadUserNameFromHeader
 	if len(consumer) > 0 && consumer[0] != nil {
 		c = consumer[0]
 	}
@@ -59,7 +59,7 @@ func setUserID(w http.ResponseWriter, r *http.Request, c UserIDConsumer) *http.R
 	return r
 }
 
-func readUserNameFromHeader(r *http.Request) (string, error) {
+func ReadUserNameFromHeader(r *http.Request) (string, error) {
 	res := r.Header.Get(UserIDHeader)
 	if res == "" {
 		res = UnknownVal

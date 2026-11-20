@@ -34,6 +34,16 @@ func getHandler(opts *middleWareParams) http.Handler {
 		readyZ:  opts.readyZ,
 	}
 
+	healthPathsChecker := func(p string) bool {
+		return p == HealthZPath
+	}
+
+	if opts.readyZ != nil {
+		healthPathsChecker = func(p string) bool {
+			return p == HealthZPath || p == ReadyZPath
+		}
+	}
+
 	userHandler := opts.handler
 
 	panicHandler := opts.panicHandler
@@ -51,7 +61,7 @@ func getHandler(opts *middleWareParams) http.Handler {
 				return
 			}
 
-			if r.URL.Path != HealthZPath && r.URL.Path != ReadyZPath {
+			if !healthPathsChecker(r.URL.Path) {
 				response.WriteErrorResponse(w, r, http.StatusNotFound, "not found", nil)
 				return
 			}
@@ -72,7 +82,7 @@ func getHandler(opts *middleWareParams) http.Handler {
 			return
 		}
 
-		if r.URL.Path == HealthZPath || r.URL.Path == ReadyZPath {
+		if healthPathsChecker(r.URL.Path) {
 			healthHandler.ServeHTTP(w, r)
 			return
 		}
