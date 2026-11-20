@@ -24,6 +24,9 @@ type AddrParams struct {
 	BindPortEnvName string
 	BindPortDefault string
 
+	UnixSocketModeArgName []string
+	UnixSocketModeEnvName string
+
 	argsFunc params.ArgsFunc
 	envFunc  params.EnvFunc
 }
@@ -73,6 +76,9 @@ func getBindParamWithDefaults(p *AddrParams) (*AddrParams, error) {
 	res.BindPortArgName = params.ArgsOrDefault(p.BindPortArgName, defaults.BindPortArgName, portMsgSuf)
 	res.BindPortEnvName = bindParamOrDefault(p.BindPortEnvName, defaults.BindPortEnvName)
 	res.BindPortDefault = bindParamOrDefault(p.BindPortDefault, "")
+
+	res.UnixSocketModeArgName = params.ArgsOrDefault(p.UnixSocketModeArgName, defaults.UnixSocketModeArgName, unixSocketModeMsgSuf)
+	res.UnixSocketModeEnvName = bindParamOrDefault(p.UnixSocketModeEnvName, defaults.UnixSocketModeEnvName)
 
 	var errDefaults error
 

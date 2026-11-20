@@ -8,12 +8,6 @@ import (
 	"strings"
 )
 
-const (
-	fullAddrMsgSuf = "full bind name"
-	hostMsgSuf     = "bind host"
-	portMsgSuf     = "bind port"
-)
-
 func errMsgForArgsEnv(suf string, args []string, env string) string {
 	return fmt.Sprintf(
 		"%s as args [%s] or env %s",

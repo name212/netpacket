@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/name212/netpacket/utils/params"
 )
@@ -20,7 +21,24 @@ const (
 
 	DefaultPortArgName = "bind-port"
 	DefaultPortEnvName = "BIND_PORT"
+
+	DefaultUnixSocketModeArgName = "unix-socket-mode"
+	DefaultUnixSocketModeEnvName = "UNIX_SOCKET_MODE"
+
+	UnixSocketPrefix      = "unix:"
+	DefaultUnixSocketMode = "777"
 )
+
+type Addr struct {
+	BindAddr       string
+	UnixSocketMode int
+}
+
+func NewAddr(bindAddr string) *Addr {
+	return &Addr{
+		BindAddr: bindAddr,
+	}
+}
 
 func DefaultBindAddrParams() *AddrParams {
 	return BindAddrParamsWithPrefixes("", "")
@@ -47,6 +65,9 @@ func BindAddrParamsWithPrefixes(argPrefix, envPrefix string) *AddrParams {
 		BindPortArgName: []string{DefaultPortArgName},
 		BindPortEnvName: DefaultPortEnvName,
 
+		UnixSocketModeArgName: []string{DefaultUnixSocketModeArgName},
+		UnixSocketModeEnvName: DefaultUnixSocketModeEnvName,
+
 		argsFunc: argsFunc,
 		envFunc:  envFunc,
 	}
@@ -65,32 +86,45 @@ func InitBindFlags(p *AddrParams, set ...*flag.FlagSet) (*AddrFlags, error) {
 	return newAddrFlags(p, set...)
 }
 
-func GetBindAddress(f *AddrFlags) (string, error) {
+func GetBindAddress(f *AddrFlags) (*Addr, error) {
 	if err := f.isInitialized(); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	bindFullAddr, err := f.extractFull()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	bindHost, err := f.extractHost()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	bindPort, err := f.extractPort()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if bindFullAddr != "" {
 		if err := ValidateBindFullAddr(bindFullAddr); err != nil {
-			return "", fmt.Errorf("%s", f.params.help(err.Error()))
+			return nil, fmt.Errorf("%s", f.params.help(err.Error()))
 		}
 
-		return bindFullAddr, nil
+		unixModeStr, err := f.extractUnixSocketMode()
+		if err != nil {
+			return nil, err
+		}
+
+		unixMode, err := ValidateUnixSocketMode(unixModeStr)
+		if err != nil {
+			return nil, fmt.Errorf("%s", f.params.help(err.Error()))
+		}
+
+		return &Addr{
+			BindAddr:       bindFullAddr,
+			UnixSocketMode: unixMode,
+		}, nil
 	}
 
 	var errPortHostEmpty error
@@ -104,7 +138,7 @@ func GetBindAddress(f *AddrFlags) (string, error) {
 	}
 
 	if errPortHostEmpty != nil {
-		return "", fmt.Errorf(
+		return nil, fmt.Errorf(
 			"%s %s:\n%s",
 			f.params.errMsgFull(),
 			f.params.help("not passed and next args not passed"),
@@ -123,12 +157,27 @@ func GetBindAddress(f *AddrFlags) (string, error) {
 	}
 
 	if errValidate != nil {
-		return "", fmt.Errorf(
+		return nil, fmt.Errorf(
 			"%s:\n%s",
 			f.params.help("cannot validate"),
 			errValidate.Error(),
 		)
 	}
 
-	return net.JoinHostPort(bindHost, bindPort), nil
+	return &Addr{
+		BindAddr: net.JoinHostPort(bindHost, bindPort),
+	}, nil
+}
+
+func (a *Addr) ExtractUnixSocketPath() (string, error) {
+	res := strings.TrimPrefix(a.BindAddr, UnixSocketPrefix)
+	if res == "" {
+		return "", fmt.Errorf("unix socket path is empty")
+	}
+
+	return res, nil
+}
+
+func (a *Addr) IsUnix() bool {
+	return strings.HasPrefix(a.BindAddr, UnixSocketPrefix)
 }
