@@ -34,7 +34,7 @@ func GetServerData(r *http.Request) (*CtxServerData, *http.Request) {
 
 func getAndSetServerData(r *http.Request) (*CtxServerData, *http.Request) {
 	var data *CtxServerData
-	data, r= GetServerData(r)
+	data, r = GetServerData(r)
 	if data != nil {
 		return data, r
 	}

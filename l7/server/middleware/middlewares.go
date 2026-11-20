@@ -31,11 +31,11 @@ func SetGeneralCtxParamsOnly(r *http.Request, params GeneralParams) *http.Reques
 func SetAllGeneralCtxAllParamsOnly(w http.ResponseWriter, r *http.Request, params AllParams) *http.Request {
 	r = SetGeneralCtxParamsOnly(r, params)
 	return setUserID(
-		w, 
+		w,
 		setIP(
 			setRequestID(r, params.RequestIDLen()),
-		), 
-		params.UserIDConsumer(), 
+		),
+		params.UserIDConsumer(),
 	)
 }
 
