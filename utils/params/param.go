@@ -67,7 +67,13 @@ func (p *Param) Init(set ...*flag.FlagSet) error {
 	p.set = s
 
 	names := p.argsFunc(p.argsNames...)
-	help := fmt.Sprintf("%s (can be set with env %s)", p.help, p.getEnvName())
+
+	defMsg := ""
+	if p.def != "" {
+		defMsg = ". By default " + p.def
+	}
+
+	help := fmt.Sprintf("%s (can be set with env %s)%s", p.help, p.getEnvName(), defMsg)
 
 	return p.set.initFlags(names, &p.dest, help)
 }

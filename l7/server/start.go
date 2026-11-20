@@ -18,14 +18,18 @@ import (
 	"github.com/name212/netpacket/l7/server/middleware"
 )
 
-func Start(ctx context.Context, bindAddr string, opts ...ServerOpt) error {
+func Start(ctx context.Context, bindAddr *bind.Addr, opts ...ServerOpt) error {
+	if bindAddr == nil {
+		return fmt.Errorf("bind address is nil")
+	}
+
 	serverOpts := newServerOpts()
 
 	for _, o := range opts {
 		o(serverOpts)
 	}
 
-	logger := log.InitLog(bindAddr, logDataConsumer, serverOpts.parentLogger)
+	logger := log.InitLog(bindAddr.BindAddr, logDataConsumer, serverOpts.parentLogger)
 
 	mParams := newMiddleWareParams(serverOpts, logger)
 
@@ -36,7 +40,7 @@ func Start(ctx context.Context, bindAddr string, opts ...ServerOpt) error {
 	return s.start(ctx)
 }
 
-func StartTopLevel(root context.Context, bindAddr string, opts ...ServerOpt) error {
+func StartTopLevel(root context.Context, bindAddr *bind.Addr, opts ...ServerOpt) error {
 	ctx, cancel := HandleTermSignalsCtx(root)
 
 	defer cancel()
@@ -77,7 +81,7 @@ func StartTopLevelFromFlags(root context.Context, bindParams *bind.AddrParams, o
 }
 
 type StartAllServers struct {
-	BindAddr string
+	BindAddr *bind.Addr
 	Opts     []ServerOpt
 }
 
@@ -101,15 +105,14 @@ func StartAll(root context.Context, wgLogger *slog.Logger, servers ...StartAllSe
 
 	for _, s := range servers {
 		go func() {
-			bindAddr := s.BindAddr
-			err := Start(ctx, bindAddr, s.Opts...)
+			err := Start(ctx, s.BindAddr, s.Opts...)
 			if err != nil {
-				wgLogger.Error("Server returns error. Stop all...", slog.String("bind_addr", bindAddr))
+				wgLogger.Error("Server returns error. Stop all...", slog.String("bind_addr", s.BindAddr.BindAddr))
 				canceler.do()
 			}
 
 			resultsCh <- &result{
-				bindAddr: bindAddr,
+				bindAddr: s.BindAddr.BindAddr,
 				err:      err,
 			}
 		}()

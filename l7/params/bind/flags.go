@@ -10,52 +10,91 @@ import (
 	"github.com/name212/netpacket/utils/params"
 )
 
+const (
+	fullAddrMsgSuf       = "full bind name"
+	hostMsgSuf           = "bind host"
+	portMsgSuf           = "bind port"
+	unixSocketModeMsgSuf = "unix socket mode"
+)
+
 type AddrFlags struct {
-	fullBindAddrParam *params.Param
-	bindHostParam     *params.Param
-	bindPortParam     *params.Param
+	fullBindAddrParam   *params.Param
+	bindHostParam       *params.Param
+	bindPortParam       *params.Param
+	unixSocketModeParam *params.Param
 
 	params *AddrParams
 }
 
 func newAddrFlags(p *AddrParams, set ...*flag.FlagSet) (*AddrFlags, error) {
-	res := &AddrFlags{
-		fullBindAddrParam: params.NewParam(
+	paramsForInit := make([]*params.Param, 0, 4)
+
+	res := &AddrFlags{}
+
+	addParam := func(target **params.Param, p *params.Param) {
+		*target = p
+		paramsForInit = append(paramsForInit, p)
+	}
+
+	addParam(
+		&res.fullBindAddrParam,
+		params.NewParam(
 			fullAddrMsgSuf,
 			p.FullBindAddrArgName,
 			p.FullBindAddrEnvName,
-			p.help("full bind address 'host:port'"),
+			p.help(
+				fmt.Sprintf(
+					"full bind address 'host:port' or %sPATH for bind to unix domain socket", UnixSocketPrefix,
+				),
+			),
 		).WithDefault(p.FullBindAddrDefault),
+	)
 
-		bindHostParam: params.NewParam(
+	addParam(
+		&res.bindHostParam,
+		params.NewParam(
 			hostMsgSuf,
 			p.BindHostArgName,
 			p.BindHostEnvName,
 			p.help("bind host address"),
 		).WithDefault(p.BindHostDefault),
+	)
 
-		bindPortParam: params.NewParam(
+	addParam(
+		&res.bindPortParam,
+		params.NewParam(
 			portMsgSuf,
 			p.BindPortArgName,
 			p.BindPortEnvName,
 			p.help("bind port"),
 		).WithDefault(p.BindPortDefault),
-		params: p,
-	}
+	)
+
+	addParam(
+		&res.unixSocketModeParam,
+		params.NewParam(
+			unixSocketModeMsgSuf,
+			p.UnixSocketModeArgName,
+			p.UnixSocketModeEnvName,
+			p.help(
+				"if bind full address passed as unix socket with this param you can pass unix file mode (in base 8 number)",
+			),
+		).WithDefault(DefaultUnixSocketMode),
+	)
 
 	params.SetFuncsForParams(p.argsFunc, p.envFunc, res.fullBindAddrParam, res.bindHostParam, res.bindPortParam)
 
-	if err := res.fullBindAddrParam.Init(set...); err != nil {
-		return nil, err
+	for _, pi := range paramsForInit {
+		if err := pi.Init(set...); err != nil {
+			return nil, fmt.Errorf(
+				"%s: %w",
+				p.help("cannot init flags"),
+				err,
+			)
+		}
 	}
 
-	if err := res.bindHostParam.Init(set...); err != nil {
-		return nil, err
-	}
-
-	if err := res.bindPortParam.Init(); err != nil {
-		return nil, err
-	}
+	res.params = p
 
 	return res, nil
 }
@@ -73,13 +112,30 @@ func (f *AddrFlags) isInitialized() error {
 }
 
 func (f *AddrFlags) extractFull() (string, error) {
-	return f.fullBindAddrParam.ExtractString()
+	return f.extractStringFromParam(f.fullBindAddrParam, fullAddrMsgSuf)
 }
 
 func (f *AddrFlags) extractHost() (string, error) {
-	return f.bindHostParam.ExtractString()
+	return f.extractStringFromParam(f.bindHostParam, hostMsgSuf)
 }
 
 func (f *AddrFlags) extractPort() (string, error) {
-	return f.bindPortParam.ExtractString()
+	return f.extractStringFromParam(f.bindPortParam, portMsgSuf)
+}
+
+func (f *AddrFlags) extractUnixSocketMode() (string, error) {
+	return f.extractStringFromParam(f.unixSocketModeParam, unixSocketModeMsgSuf)
+}
+
+func (f *AddrFlags) extractStringFromParam(p *params.Param, suf string) (string, error) {
+	res, err := p.ExtractString()
+	if err != nil {
+		return "", fmt.Errorf(
+			"cannot extract string value %s: %w",
+			f.params.help(suf),
+			err,
+		)
+	}
+
+	return res, nil
 }

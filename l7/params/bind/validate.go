@@ -11,8 +11,27 @@ import (
 )
 
 func ValidateBindFullAddr(addr string) error {
-	_, _, err := net.SplitHostPort(addr)
-	return checkErrValidate(fullAddrMsgSuf, err)
+	a := NewAddr(addr)
+
+	if a.IsUnix() {
+		_, err := a.ExtractUnixSocketPath()
+		return checkErrValidate(fullAddrMsgSuf, err)
+	}
+
+	host, port, err := net.SplitHostPort(a.BindAddr)
+	if err := checkErrValidate(fullAddrMsgSuf, err); err != nil {
+		return err
+	}
+
+	if err := ValidateBindHost(host); err != nil {
+		return checkErrValidate(fullAddrMsgSuf, err)
+	}
+
+	if err := ValidateBindPort(port); err != nil {
+		return checkErrValidate(fullAddrMsgSuf, err)
+	}
+
+	return nil
 }
 
 func ValidateBindHost(bindHost string) error {
@@ -31,4 +50,27 @@ func ValidateBindPort(bindPort string) error {
 	}
 
 	return nil
+}
+
+const maxUnixMode = 0o777
+
+func ValidateUnixSocketMode(mode string) (int, error) {
+	errVal := -1
+	modeInt, err := strconv.ParseUint(mode, 8, 16)
+	if err != nil {
+		return errVal, checkErrValidate(unixSocketModeMsgSuf, fmt.Errorf("not number '%w'", err))
+	}
+
+	if modeInt < 1 || modeInt > maxUnixMode {
+		return errVal, checkErrValidate(
+			unixSocketModeMsgSuf,
+			fmt.Errorf(
+				"should > 0 and <= %d (%o in base 8)",
+				maxUnixMode,
+				maxUnixMode,
+			),
+		)
+	}
+
+	return int(modeInt), nil
 }
