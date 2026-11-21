@@ -29,11 +29,16 @@ func Start(ctx context.Context, bindAddr *bind.Addr, opts ...ServerOpt) error {
 		o(serverOpts)
 	}
 
-	logger := log.InitLog(bindAddr.BindAddr, logDataConsumer, serverOpts.parentLogger)
+	loggerParams := log.NewInitParams(bindAddr.BindAddr, logDataConsumer)
+	if serverOpts.noAccessLogs {
+		loggerParams.WithNoAccessLogs()
+	}
+
+	logger := log.InitLog(loggerParams, serverOpts.parentLogger)
 
 	mParams := newMiddleWareParams(serverOpts, logger)
 
-	handler := getHandler(mParams)
+	handler := getHandler(mParams, bindAddr.BindAddr)
 
 	s, err := newServer(bindAddr, handler, logger, serverOpts)
 	if err != nil {

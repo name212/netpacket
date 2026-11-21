@@ -32,7 +32,7 @@ func newFlagSet(set []*flag.FlagSet) (*flagSet, error) {
 
 	var s *flag.FlagSet
 
-	if len(set) > 0 {
+	if len(set) > 0 && set[0] != nil {
 		s = set[0]
 		lookup = s.Lookup
 		fString = s.String
@@ -70,15 +70,15 @@ func (f *flagSet) Parsed() bool {
 }
 
 func (f *flagSet) NotParsed() error {
-	if !f.set.Parsed() {
-		return fmt.Errorf("extract bind address before parse %s", f.name)
+	if !f.Parsed() {
+		return fmt.Errorf("extract params before parse %s", f.name)
 	}
 
 	return nil
 }
 
 func (f *flagSet) initFlags(names []string, destPtr *[]*string, help string) error {
-	dest := *destPtr
+	dest := make([]*string, 0, len(names))
 
 	for _, n := range names {
 		if err := f.Lookup(n, help); err != nil {
@@ -88,6 +88,8 @@ func (f *flagSet) initFlags(names []string, destPtr *[]*string, help string) err
 		f := f.String(n, help)
 		dest = append(dest, f)
 	}
+
+	*destPtr = dest
 
 	return nil
 }

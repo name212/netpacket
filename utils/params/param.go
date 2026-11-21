@@ -31,6 +31,8 @@ func NewParam(name string, argsNames []string, envName string, help string) *Par
 	return &Param{
 		name: name,
 
+		help: help,
+
 		envName:   envName,
 		argsNames: argsNames,
 
