@@ -27,7 +27,6 @@ func getHeaders(headers []Headers) []Headers {
 	hd := headers
 	if len(hd) == 0 {
 		hd = make([]Headers, 1)
-
 	}
 	if hd[0] == nil {
 		hd[0] = make(Headers, 1)

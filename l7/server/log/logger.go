@@ -23,7 +23,7 @@ type (
 	Logger struct {
 		*slog.Logger
 		requestDataConsumer RequestDataConsumer
-		noAccess bool
+		noAccess            bool
 	}
 
 	logFunc func(string, ...any)

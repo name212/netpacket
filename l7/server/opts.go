@@ -52,7 +52,7 @@ type (
 		tls            *htls.Config
 		http2          *HTTP2Opts
 		protocols      *http.Protocols
-		noAccessLogs       bool
+		noAccessLogs   bool
 	}
 
 	ServerOpt func(*ServerOpts)

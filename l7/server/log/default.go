@@ -5,7 +5,7 @@ package log
 
 import "log/slog"
 
-func ErrorDefault(msg string, err error) { 
+func ErrorDefault(msg string, err error) {
 	slog.Error(
 		msg,
 		errorAttrForLog(err),

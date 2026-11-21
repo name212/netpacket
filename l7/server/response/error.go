@@ -13,11 +13,11 @@ import (
 
 const (
 	NotFoundMsg = "not found"
-	PanicMsg = "internal server error"
+	PanicMsg    = "internal server error"
 
-	LogMsgErrWriteErrorResponse = "cannot write error response"
+	LogMsgErrWriteErrorResponse   = "cannot write error response"
 	LogMsgErrWriteNotFondResponse = "cannot write not found response"
-	LogMsgErrWritePanicResponse = "cannot write panic response"
+	LogMsgErrWritePanicResponse   = "cannot write panic response"
 )
 
 var (
