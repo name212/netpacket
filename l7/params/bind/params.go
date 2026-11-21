@@ -104,5 +104,8 @@ func getBindParamWithDefaults(p *AddrParams) (*AddrParams, error) {
 		return nil, fmt.Errorf("%s:\n%s", p.help("default values incorrect"), errDefaults.Error())
 	}
 
+	res.argsFunc = p.argsFunc
+	res.envFunc = p.envFunc
+
 	return res, nil
 }

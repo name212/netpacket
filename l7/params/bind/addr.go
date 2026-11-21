@@ -25,13 +25,14 @@ const (
 	DefaultUnixSocketModeArgName = "unix-socket-mode"
 	DefaultUnixSocketModeEnvName = "UNIX_SOCKET_MODE"
 
-	UnixSocketPrefix      = "unix:"
-	DefaultUnixSocketMode = "777"
+	UnixSocketPrefix         = "unix:"
+	defaultUnixSocketModeInt = 0o700
+	DefaultUnixSocketMode    = "700"
 )
 
 type Addr struct {
-	BindAddr       string
-	UnixSocketMode int
+	BindAddr          string
+	UnixSocketModeStr string
 }
 
 func NewAddr(bindAddr string) *Addr {
@@ -111,20 +112,39 @@ func GetBindAddress(f *AddrFlags) (*Addr, error) {
 			return nil, fmt.Errorf("%s", f.params.help(err.Error()))
 		}
 
-		unixModeStr, err := f.extractUnixSocketMode()
-		if err != nil {
-			return nil, err
+		res := &Addr{
+			BindAddr: bindFullAddr,
 		}
 
-		unixMode, err := ValidateUnixSocketMode(unixModeStr)
-		if err != nil {
-			return nil, fmt.Errorf("%s", f.params.help(err.Error()))
+		if res.IsUnix() {
+			var errUnix error
+
+			if _, err := res.ExtractUnixSocketPath(); err != nil {
+				errUnix = appendErrForBindAsStr(errUnix, err.Error())
+			}
+
+			unixModeStr, err := f.extractUnixSocketMode()
+			if err == nil {
+				if err := ValidateUnixSocketMode(unixModeStr); err != nil {
+					errUnix = appendErrForBindAsStr(errUnix, err.Error())
+				}
+			} else {
+				errUnix = appendErrForBindAsStr(errUnix, err.Error())
+			}
+
+			if errUnix != nil {
+				return nil, fmt.Errorf(
+					"%s %s:\n%s",
+					f.params.errMsgFull(),
+					f.params.help("unix socket params"),
+					errUnix.Error(),
+				)
+			}
+
+			res.UnixSocketModeStr = unixModeStr
 		}
 
-		return &Addr{
-			BindAddr:       bindFullAddr,
-			UnixSocketMode: unixMode,
-		}, nil
+		return res, nil
 	}
 
 	var errPortHostEmpty error
@@ -167,6 +187,18 @@ func GetBindAddress(f *AddrFlags) (*Addr, error) {
 	return &Addr{
 		BindAddr: net.JoinHostPort(bindHost, bindPort),
 	}, nil
+}
+
+func (a *Addr) Addr() string {
+	return a.BindAddr
+}
+
+func (a *Addr) UnixSocketMode() (int, error) {
+	if a.UnixSocketModeStr == "" {
+		return defaultUnixSocketModeInt, nil
+	}
+
+	return validateUnixSocketMode(a.UnixSocketModeStr)
 }
 
 func (a *Addr) ExtractUnixSocketPath() (string, error) {

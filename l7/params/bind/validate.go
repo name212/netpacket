@@ -54,7 +54,12 @@ func ValidateBindPort(bindPort string) error {
 
 const maxUnixMode = 0o777
 
-func ValidateUnixSocketMode(mode string) (int, error) {
+func ValidateUnixSocketMode(mode string) error {
+	_, err := validateUnixSocketMode(mode)
+	return err
+}
+
+func validateUnixSocketMode(mode string) (int, error) {
 	errVal := -1
 	modeInt, err := strconv.ParseUint(mode, 8, 16)
 	if err != nil {

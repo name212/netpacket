@@ -82,7 +82,7 @@ func newAddrFlags(p *AddrParams, set ...*flag.FlagSet) (*AddrFlags, error) {
 		).WithDefault(DefaultUnixSocketMode),
 	)
 
-	params.SetFuncsForParams(p.argsFunc, p.envFunc, res.fullBindAddrParam, res.bindHostParam, res.bindPortParam)
+	params.SetFuncsForParams(p.argsFunc, p.envFunc, paramsForInit...)
 
 	for _, pi := range paramsForInit {
 		if err := pi.Init(set...); err != nil {
