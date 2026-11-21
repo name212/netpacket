@@ -38,19 +38,16 @@ func setUserID(w http.ResponseWriter, r *http.Request, c UserIDConsumer) *http.R
 
 	id, err := c(r)
 	if err != nil {
-		code := http.StatusForbidden
-
 		logger := data.Logger()
 
 		logger.RequestError(r, NotFoundUserIDMsg, err)
 
+		w.WriteHeader(http.StatusForbidden)
+
 		out := data.ErrorWriter()(NotFoundUserIDMsg, err)
 		if _, errW := w.Write(out); errW != nil {
 			logger.RequestError(r, "cannot write not found user id response", nil)
-			code = http.StatusInternalServerError
 		}
-
-		w.WriteHeader(code)
 
 		return nil
 	}

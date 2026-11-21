@@ -6,6 +6,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"runtime/debug"
 
 	"github.com/name212/netpacket/l7/server/log"
 	"github.com/name212/netpacket/l7/server/middleware"
@@ -16,10 +17,12 @@ import (
 const (
 	HealthZPath = "/_healthz"
 	ReadyZPath  = "/_readyz"
+
+	OKHealthZResponse = "OK"
 )
 
 var (
-	okHealthZResponse = []byte("OK")
+	okHealthZResponse = []byte(OKHealthZResponse)
 )
 
 type (
@@ -28,7 +31,7 @@ type (
 	ReadyZHandler  = healthHandler
 )
 
-func getHandler(opts *middleWareParams) http.Handler {
+func getHandler(opts *middleWareParams, bindAddr string) http.Handler {
 	healthHandler := &healthCheckHandler{
 		healthZ: opts.healthZ,
 		readyZ:  opts.readyZ,
@@ -44,16 +47,35 @@ func getHandler(opts *middleWareParams) http.Handler {
 		}
 	}
 
-	userHandler := opts.handler
-
 	panicHandler := opts.panicHandler
+
+	handlePanic := func(w http.ResponseWriter, r *http.Request, errAny any, trace []byte) {
+		err := fmt.Errorf("panic: %v", errAny)
+
+		t := string(trace)
+
+		if opts.logger != nil {
+			opts.logger.RequestPanic(r, err, t)
+		} else {
+			log.PanicDefault(err, t, bindAddr)
+		}
+
+		response.Panic(w, r, err)
+
+		panicHandler(errAny, t)
+	}
+
+	userHandler := opts.handler
 
 	if value.IsNil(userHandler) {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if panicHandler != nil {
 				defer func() {
 					err := recover()
-					handlePanic(opts, r, err, panicHandler)
+					if value.IsNil(err) {
+						return
+					}
+					handlePanic(w, r, err, debug.Stack())
 				}()
 			}
 
@@ -62,7 +84,7 @@ func getHandler(opts *middleWareParams) http.Handler {
 			}
 
 			if !healthPathsChecker(r.URL.Path) {
-				response.WriteErrorResponse(w, r, http.StatusNotFound, "not found", nil)
+				response.NotFound(w, r)
 				return
 			}
 
@@ -74,7 +96,10 @@ func getHandler(opts *middleWareParams) http.Handler {
 		if panicHandler != nil {
 			defer func() {
 				err := recover()
-				handlePanic(opts, r, err, panicHandler)
+				if value.IsNil(err) {
+					return
+				}
+				handlePanic(w, r, err, debug.Stack())
 			}()
 		}
 
@@ -128,8 +153,8 @@ func (h *healthCheckHandler) doHealth(r *http.Request) error {
 func (h *healthCheckHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer BodyClose(r)
 
-	if !IsHead(r) || !IsGet(r) {
-		response.WriteErrorResponse(
+	if !IsHead(r) && !IsGet(r) {
+		response.Error(
 			w,
 			r,
 			http.StatusBadRequest,
@@ -140,7 +165,7 @@ func (h *healthCheckHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.doHealth(r); err != nil {
-		response.WriteErrorResponse(
+		response.Error(
 			w,
 			r,
 			http.StatusBadRequest,
@@ -150,13 +175,11 @@ func (h *healthCheckHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if IsGet(r) {
-		if _, err := w.Write(okHealthZResponse); err != nil {
-			response.SendInternalError(w, r, "cannot write ok response for healthz handler", err)
-			return
-		}
+		response.OK(w, r, okHealthZResponse)
+		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	response.Head(w, r, http.StatusOK)
 }
 
 type middleWareParams struct {
@@ -185,16 +208,4 @@ func (p *middleWareParams) UserIDConsumer() middleware.UserIDConsumer {
 
 func (p *middleWareParams) RequestIDLen() int {
 	return p.requestIDLen
-}
-
-func handlePanic(opts *middleWareParams, r *http.Request, errAny any, handler PanicHandler) {
-	if value.IsNil(errAny) {
-		return
-	}
-
-	err := fmt.Errorf("panic: %v", errAny)
-
-	opts.logger.RequestError(r, "server got panic", err)
-
-	handler(errAny)
 }

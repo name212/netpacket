@@ -14,9 +14,9 @@ import (
 	"github.com/name212/netpacket/utils/value"
 )
 
-type PanicHandler func(any)
+type PanicHandler func(err any, trace string)
 
-func DummyPanicHandler(any) {}
+func DummyPanicHandler(any, string) {}
 
 type (
 	Timeouts struct {
@@ -52,6 +52,7 @@ type (
 		tls            *htls.Config
 		http2          *HTTP2Opts
 		protocols      *http.Protocols
+		noAccessLogs   bool
 	}
 
 	ServerOpt func(*ServerOpts)
@@ -75,6 +76,7 @@ func newServerOpts() *ServerOpts {
 		tls:            nil,
 		http2:          nil,
 		protocols:      p,
+		noAccessLogs:   false,
 	}
 }
 
@@ -207,6 +209,12 @@ func WithHTTP2(opts *HTTP2Opts) ServerOpt {
 		if opts.only {
 			so.protocols.SetHTTP1(false)
 		}
+	}
+}
+
+func WithNoAccessLogs() ServerOpt {
+	return func(so *ServerOpts) {
+		so.noAccessLogs = true
 	}
 }
 

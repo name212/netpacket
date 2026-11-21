@@ -4,6 +4,7 @@
 package middleware
 
 import (
+	"net"
 	"net/http"
 )
 
@@ -28,7 +29,11 @@ func GetRealUserIPFromHeaders(r *http.Request) string {
 	}
 
 	if ip == "" {
-		ip = r.RemoteAddr
+		var err error
+		ip, _, err = net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			ip = r.RemoteAddr
+		}
 	}
 
 	return ip

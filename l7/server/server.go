@@ -14,7 +14,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/name212/netpacket/l7/params/bind"
 	"github.com/name212/netpacket/l7/server/log"
 	"github.com/name212/netpacket/utils/value"
 )
@@ -26,6 +25,7 @@ type server struct {
 	stopped    *atomic.Bool
 	logger     *log.Logger
 	l          listener
+	shutdownCh chan struct{}
 }
 
 type listener interface {
@@ -33,7 +33,7 @@ type listener interface {
 	shutdown() error
 }
 
-func newServer(bindAddr *bind.Addr, handler http.Handler, logger *log.Logger, opts *ServerOpts) (*server, error) {
+func newServer(bindAddr BindAddr, handler http.Handler, logger *log.Logger, opts *ServerOpts) (*server, error) {
 	s := &http.Server{
 		ReadTimeout:       opts.timeouts.read,
 		ReadHeaderTimeout: opts.timeouts.readHeader,
@@ -69,7 +69,7 @@ func newServer(bindAddr *bind.Addr, handler http.Handler, logger *log.Logger, op
 	var l listener
 
 	if bindAddr.IsUnix() {
-		l = newUnixListener(*bindAddr)
+		l = newUnixListener(bindAddr)
 	} else {
 		l = newPortListener(bindAddr)
 	}
@@ -79,6 +79,7 @@ func newServer(bindAddr *bind.Addr, handler http.Handler, logger *log.Logger, op
 		stopped:    &atomic.Bool{},
 		logger:     logger,
 		l:          l,
+		shutdownCh: make(chan struct{}),
 	}, nil
 }
 
@@ -102,7 +103,11 @@ func (s *server) start(ctx context.Context) error {
 		}
 	}
 
-	return s.shutdown(shutdownErr)
+	shutdownErr = s.shutdown(shutdownErr)
+
+	<-s.shutdownCh
+
+	return shutdownErr
 }
 
 func (s *server) shutdown(err error) error {
@@ -110,12 +115,18 @@ func (s *server) shutdown(err error) error {
 		return err
 	}
 
+	defer func() {
+		close(s.shutdownCh)
+	}()
+
 	var resErr = err
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
-	if errStopHTTP := s.httpServer.Shutdown(shutdownCtx); errStopHTTP != nil {
+	errStopHTTP := s.httpServer.Shutdown(shutdownCtx)
+
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		s.logger.Error("Cannot shutdown HTTP-server gracefully. HTTP-server not stopped", errStopHTTP)
 		resErr = appendErr(err, "http server not stopped skip stop listener")
 	} else {
@@ -132,19 +143,21 @@ func (s *server) shutdown(err error) error {
 
 type portListener struct {
 	l    net.Listener
-	addr *bind.Addr
+	addr BindAddr
 }
 
-func newPortListener(addr *bind.Addr) *portListener {
+func newPortListener(addr BindAddr) *portListener {
 	return &portListener{
 		addr: addr,
 	}
 }
 
 func (p *portListener) start() (net.Listener, error) {
-	l, err := net.Listen("tcp", p.addr.BindAddr)
+	addr := p.addr.Addr()
+
+	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		return nil, fmt.Errorf("cannot start port listener: %w", err)
+		return nil, fmt.Errorf("cannot start port listener for '%s': %w", addr, err)
 	}
 
 	p.l = l
@@ -162,48 +175,42 @@ func (p *portListener) shutdown() error {
 
 type unixListener struct {
 	l    net.Listener
-	addr *bind.Addr
+	addr BindAddr
 	path string
 }
 
-func newUnixListener(addr bind.Addr) *unixListener {
+func newUnixListener(bindAddr BindAddr) *unixListener {
 	return &unixListener{
-		addr: &addr,
+		addr: bindAddr,
 	}
 }
 
+const maxUnixMode = 0o777
+
 func (u *unixListener) start() (net.Listener, error) {
-	mode := 0o777
+	mode := 0o700
 
-	var err error
+	extractedMode, err := u.addr.UnixSocketMode()
+	if err != nil {
+		return nil, err
+	}
 
-	if u.addr.UnixSocketMode > 0 {
-		var mValidated int
-		mValidated, err := bind.ValidateUnixSocketMode(fmt.Sprintf("%d", u.addr.UnixSocketMode))
-		if err != nil {
-			return nil, fmt.Errorf("cannot start listener with unix-socket '%s', incorrect socket permission mode: %w", u.addr.BindAddr, err)
+	if extractedMode > 0 {
+		if extractedMode > maxUnixMode {
+			return nil, fmt.Errorf("incorrect unix socket mode %o should be <= %o in base 8", extractedMode, maxUnixMode)
 		}
-		mode = mValidated
+		mode = extractedMode
 	}
 
 	fMode := os.FileMode(mode)
 
 	u.path, err = u.addr.ExtractUnixSocketPath()
 	if err != nil {
-		return nil, fmt.Errorf("cannot start listener with unix-socket '%s', cannot extract unix socket path: %w", u.addr.BindAddr, err)
+		return nil, fmt.Errorf("cannot start listener with unix-socket '%s', cannot extract unix socket path: %w", u.l.Addr(), err)
 	}
 
-	socketDir := path.Dir(u.path)
-
-	if socketDir != "" {
-		if err := os.MkdirAll(socketDir, 0o777); err != nil {
-			return nil, fmt.Errorf(
-				"cannot start listener with unix-socket '%s', cannot create socket dir '%s': %w",
-				u.addr.BindAddr,
-				socketDir,
-				err,
-			)
-		}
+	if err := u.prepareSocksPath(); err != nil {
+		return nil, err
 	}
 
 	l, err := net.Listen("unix", u.path)
@@ -224,6 +231,45 @@ func (u *unixListener) start() (net.Listener, error) {
 
 	u.l = l
 	return u.l, nil
+}
+
+func (u *unixListener) prepareSocksPath() error {
+	statPath, err := os.Stat(u.path)
+	if err == nil && statPath.IsDir() {
+		return fmt.Errorf(" unix socket path '%s' is dir", u.path)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("cannot get stat for unix socket path '%s': %w", u.path, err)
+	}
+
+	socketDir := path.Dir(u.path)
+
+	if socketDir == "" {
+		return nil
+	}
+
+	dirStat, err := os.Stat(socketDir)
+	if err == nil {
+		if !dirStat.IsDir() {
+			return fmt.Errorf("unix socket dir '%s' for path '%s' exists and not not dir", socketDir, u.path)
+		}
+
+		return nil
+	}
+
+	if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("cannot get stat for unix socket dir '%s': %w", socketDir, err)
+	}
+
+	if err := os.MkdirAll(socketDir, 0o777); err != nil {
+		return fmt.Errorf(
+			"cannot create socket dir '%s' for path '%s': %w",
+			socketDir,
+			u.path,
+			err,
+		)
+	}
+
+	return nil
 }
 
 func (u *unixListener) shutdown() error {
