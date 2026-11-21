@@ -174,8 +174,6 @@ func (h *healthCheckHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 
-	w.WriteHeader(http.StatusOK)
-
 	if IsGet(r) {
 		response.OK(w, r, okHealthZResponse)
 		return
