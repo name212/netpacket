@@ -115,8 +115,8 @@ func (s *server) shutdown(err error) error {
 		return err
 	}
 
-	defer func ()  {
-		close(s.shutdownCh)	
+	defer func() {
+		close(s.shutdownCh)
 	}()
 
 	var resErr = err
