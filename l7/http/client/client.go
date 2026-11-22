@@ -128,57 +128,145 @@ func NewClient(addr Addr, opts ...ClientOpt) (*Client, error) {
 }
 
 func (c *Client) Get(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
-	return c.do(
+	r, err := c.do(
 		parent,
 		http.MethodGet,
 		c.pathURL(path),
 		opts,
 	)
+
+	if err != nil {
+		return nil, appendErr(err, r.Close())
+	}
+
+	return r, nil
+}
+
+func Get(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClient(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Get(parent, path, opts...)
 }
 
 func (c *Client) Post(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
-	return c.do(
+	r, err := c.do(
 		parent,
 		http.MethodPost,
 		c.pathURL(path),
 		opts,
 	)
+
+	if err != nil {
+		return nil, appendErr(err, r.Close())
+	}
+
+	return r, nil
 }
 
-func (c *Client) Head(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
-	return c.do(
+func Post(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClient(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Post(parent, path, opts...)
+}
+
+func (c *Client) Head(parent context.Context, path string, opts ...RequestOpt) error {
+	r, err := c.do(
 		parent,
 		http.MethodHead,
 		c.pathURL(path),
 		opts,
 	)
+
+	err = appendErr(err, r.Close())
+
+	return err
+}
+
+func Head(parent context.Context, addr Addr, path string, opts ...RequestOpt) error {
+	c, err := NewClient(addr)
+	if err != nil {
+		return err
+	}
+
+	return c.Head(parent, path, opts...)
 }
 
 func (c *Client) Delete(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
-	return c.do(
+	r, err := c.do(
 		parent,
 		http.MethodDelete,
 		c.pathURL(path),
 		opts,
 	)
+
+	if err != nil {
+		return nil, appendErr(err, r.Close())
+	}
+
+	return r, nil
+}
+
+func Delete(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClient(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Delete(parent, path, opts...)
 }
 
 func (c *Client) Put(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
-	return c.do(
+	r, err := c.do(
 		parent,
 		http.MethodPut,
 		c.pathURL(path),
 		opts,
 	)
+
+	if err != nil {
+		return nil, appendErr(err, r.Close())
+	}
+
+	return r, nil
+}
+
+func Put(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClient(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Put(parent, path, opts...)
 }
 
 func (c *Client) Patch(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
-	return c.do(
+	r, err := c.do(
 		parent,
 		http.MethodPatch,
 		c.pathURL(path),
 		opts,
 	)
+
+	if err != nil {
+		return nil, appendErr(err, r.Close())
+	}
+
+	return r, nil
+}
+
+func Patch(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClient(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Patch(parent, path, opts...)
 }
 
 func (c *Client) pathURL(path string) *url.URL {
@@ -348,4 +436,13 @@ func (c *Client) log(requestOpts *RequestOpts, msg string, fc logFuncConsumer, r
 	a = append(a, attrs...)
 
 	fc(logger)(msg, a...)
+}
+
+
+func appendErr(err, err2 error) error {
+	if err2 == nil {
+		return err
+	}
+
+	return fmt.Errorf("%w; %w", err, err2)
 }
