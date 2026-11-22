@@ -6,16 +6,16 @@ package client
 import "github.com/name212/netpacket/l7/http/log"
 
 const (
-	HostAttr        = "host"
+	HostAttr         = "host"
 	IsUnixSocketAttr = "unix_socket"
-	MethodAttr      = log.MethodAttr
-	PathAttr        = log.PathAttr
-	UserAttr        = log.UserAttr
-	UserAgentAttr   = log.UserAgentAttr
-	RequestLenAttr  = log.RequestLenAttr
-	ResponseLenAttr = log.ResponseLenAttr
-	StatusCodeAttr  = log.StatusCodeAttr
-	LogTypeAttr     = log.LogTypeAttr
+	MethodAttr       = log.MethodAttr
+	PathAttr         = log.PathAttr
+	UserAttr         = log.UserAttr
+	UserAgentAttr    = log.UserAgentAttr
+	RequestLenAttr   = log.RequestLenAttr
+	ResponseLenAttr  = log.ResponseLenAttr
+	StatusCodeAttr   = log.StatusCodeAttr
+	LogTypeAttr      = log.LogTypeAttr
 
 	ErrAttr = log.ErrAttr
 )

@@ -8,7 +8,6 @@ import (
 	"io"
 )
 
-
 type readerClose struct {
 	io.Reader
 }

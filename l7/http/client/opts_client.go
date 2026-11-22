@@ -147,7 +147,6 @@ func (o *ClientOpts) getHeader(name string) string {
 		if h, ok := o.headers[name]; ok {
 			res = h
 		}
-
 	}
 
 	return res

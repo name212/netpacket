@@ -8,11 +8,11 @@ const (
 	MethodAttr      = "method"
 	PathAttr        = "path"
 	UserAgentAttr   = "agent"
-	RequestLenAttr = "request_len"
+	RequestLenAttr  = "request_len"
 	ResponseLenAttr = "response_len"
 	StatusCodeAttr  = "status"
 	LogTypeAttr     = "logt"
-	ErrAttr = "error"
+	ErrAttr         = "error"
 )
 
 const (
