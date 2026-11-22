@@ -136,6 +136,51 @@ func (c *Client) Get(parent context.Context, path string, opts ...RequestOpt) (*
 	)
 }
 
+func (c *Client) Post(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	return c.do(
+		parent,
+		http.MethodPost,
+		c.pathURL(path),
+		opts,
+	)
+}
+
+func (c *Client) Head(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	return c.do(
+		parent,
+		http.MethodHead,
+		c.pathURL(path),
+		opts,
+	)
+}
+
+func (c *Client) Delete(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	return c.do(
+		parent,
+		http.MethodDelete,
+		c.pathURL(path),
+		opts,
+	)
+}
+
+func (c *Client) Put(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	return c.do(
+		parent,
+		http.MethodPut,
+		c.pathURL(path),
+		opts,
+	)
+}
+
+func (c *Client) Patch(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	return c.do(
+		parent,
+		http.MethodPatch,
+		c.pathURL(path),
+		opts,
+	)
+}
+
 func (c *Client) pathURL(path string) *url.URL {
 	return &url.URL{
 		Path: path,
