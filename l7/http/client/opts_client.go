@@ -102,6 +102,12 @@ func WithClientHTTPS() ClientOpt {
 	}
 }
 
+func WithClientHeaders(h Headers) ClientOpt {
+	return func(o *ClientOpts) {
+		o.addHeaders(h)
+	}
+}
+
 func WithClientNoAutoCloseResponseBody() ClientOpt {
 	return func(o *ClientOpts) {
 		o.autoCloseResponseBody = false
@@ -124,6 +130,10 @@ func (o *ClientOpts) addHeader(k, v string) {
 }
 
 func (o *ClientOpts) addHeaders(h Headers) {
+	if len(h) == 0 {
+		return
+	}
+
 	o.prepareHeaders()
 	for k, v := range h {
 		o.headers[k] = v

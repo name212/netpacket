@@ -99,6 +99,12 @@ func WithUserAgent(a string) RequestOpt {
 	}
 }
 
+func WithHeader(h Headers) RequestOpt {
+	return func(o *RequestOpts) {
+		WithClientHeaders(h)(o.ClientOpts)
+	}
+}
+
 func WithHTTPS() RequestOpt {
 	return func(o *RequestOpts) {
 		WithClientHTTPS()(o.ClientOpts)

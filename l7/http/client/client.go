@@ -128,7 +128,18 @@ func NewClient(addr Addr, opts ...ClientOpt) (*Client, error) {
 }
 
 func (c *Client) Get(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
-	return nil, nil
+	return c.do(
+		parent,
+		http.MethodGet,
+		c.pathURL(path),
+		opts,
+	)
+}
+
+func (c *Client) pathURL(path string) *url.URL {
+	return &url.URL{
+		Path: path,
+	}
 }
 
 func (c *Client) getRequest(method string, u *url.URL, opts []RequestOpt) (*http.Request, *RequestOpts, error) {
@@ -274,20 +285,22 @@ func (c *Client) log(requestOpts *RequestOpts, msg string, fc logFuncConsumer, r
 	}
 
 	if id := requestOpts.getUserID(); id != "" {
-		a = append(attrs, slog.String(UserAttr, id))
+		a = append(a, slog.String(UserAttr, id))
 	}
 
 	if agent := requestOpts.getUserAgent(); agent != "" {
-		a = append(attrs, slog.String(UserAgentAttr, agent))
+		a = append(a, slog.String(UserAgentAttr, agent))
 	}
 
 	if code > 0 {
-		a = append(attrs, slog.Int(StatusCodeAttr, code))
+		a = append(a, slog.Int(StatusCodeAttr, code))
 	}
 
 	if c.isUnix {
-		a = append(attrs, slog.Bool(IsUnixSocketAttr, true))
+		a = append(a, slog.Bool(IsUnixSocketAttr, true))
 	}
+
+	a = append(a, attrs...)
 
 	fc(logger)(msg, a...)
 }
