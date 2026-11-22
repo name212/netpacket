@@ -52,7 +52,7 @@ func doHealthAsCmd(p *bind.AddrParams, cmdName, path string, logger []*slog.Logg
 
 	ctx, cancel := server.HandleTermSignalsCtx(context.Background())
 	defer cancel()
-	
+
 	if err := doHealth(ctx, addr, path, logger); err != nil {
 		logAndExitError(path, err, logger)
 		return
@@ -62,7 +62,7 @@ func doHealthAsCmd(p *bind.AddrParams, cmdName, path string, logger []*slog.Logg
 }
 
 func logAndExitError(path string, err error, logger []*slog.Logger) {
-	l, msg := getLogger(path, logger)	
+	l, msg := getLogger(path, logger)
 
 	if l != nil {
 		l.Error(
@@ -77,7 +77,7 @@ func logAndExitError(path string, err error, logger []*slog.Logger) {
 }
 
 func logAndExitOK(path string, logger []*slog.Logger) {
-	l, msg := getLogger(path, logger)	
+	l, msg := getLogger(path, logger)
 
 	if l != nil {
 		l.Info(msg)

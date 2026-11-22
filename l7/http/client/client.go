@@ -438,7 +438,6 @@ func (c *Client) log(requestOpts *RequestOpts, msg string, fc logFuncConsumer, r
 	fc(logger)(msg, a...)
 }
 
-
 func appendErr(err, err2 error) error {
 	if err2 == nil {
 		return err
