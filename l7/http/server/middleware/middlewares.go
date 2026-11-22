@@ -6,7 +6,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/name212/netpacket/l7/server/log"
+	"github.com/name212/netpacket/l7/http/server/log"
 )
 
 type GeneralParams interface {

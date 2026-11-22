@@ -6,7 +6,7 @@ package response
 import (
 	"net/http"
 
-	"github.com/name212/netpacket/l7/server/middleware"
+	"github.com/name212/netpacket/l7/http/server/middleware"
 )
 
 func Head(w http.ResponseWriter, r *http.Request, code int, headers ...Headers) {
