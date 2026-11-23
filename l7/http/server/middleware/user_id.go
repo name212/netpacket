@@ -5,6 +5,8 @@ package middleware
 
 import (
 	"net/http"
+
+	"github.com/name212/netpacket/l7/http/content"
 )
 
 const (
@@ -42,9 +44,11 @@ func setUserID(w http.ResponseWriter, r *http.Request, c UserIDConsumer) *http.R
 
 		logger.RequestError(r, NotFoundUserIDMsg, err)
 
+		out, ct := data.ErrorWriter()(NotFoundUserIDMsg, err)
+		w.Header().Add(content.ContentTypeHeader, ct)
+
 		w.WriteHeader(http.StatusForbidden)
 
-		out := data.ErrorWriter()(NotFoundUserIDMsg, err)
 		if _, errW := w.Write(out); errW != nil {
 			logger.RequestError(r, "cannot write not found user id response", nil)
 		}

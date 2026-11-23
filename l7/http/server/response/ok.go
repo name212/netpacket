@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/name212/netpacket/l7/server/middleware"
+	"github.com/name212/netpacket/l7/http/content"
+	"github.com/name212/netpacket/l7/http/server/middleware"
 )
 
 func OKWithStatus(w http.ResponseWriter, r *http.Request, code int, response []byte, headers ...Headers) {
@@ -31,11 +32,17 @@ func writeOK(w http.ResponseWriter, r *http.Request, code int, response []byte, 
 
 	logger := data.Logger()
 
-	setHeaders(w, headers)
+	ct := setHeaders(w, headers)
+
+	lenR := len(response)
+
+	if lenR > 0 && ct == content.ContentNo {
+		w.Header().Add(content.ContentTypeHeader, content.ContentText)
+	}
 
 	w.WriteHeader(code)
 
-	if len(response) > 0 {
+	if lenR > 0 {
 		if _, errW := w.Write(response); errW != nil {
 			logger.RequestError(
 				r,

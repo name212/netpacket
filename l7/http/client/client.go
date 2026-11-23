@@ -1,0 +1,440 @@
+// Copyright 2026
+// license that can be found in the LICENSE file.
+
+package client
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"net"
+	"net/http"
+	"net/url"
+
+	"github.com/name212/netpacket/l7/http/client/pool"
+	"github.com/name212/netpacket/l7/http/content"
+	"github.com/name212/netpacket/utils/value"
+)
+
+var (
+	ErrTimeout           = fmt.Errorf("timeout")
+	ErrInvalidStatusCode = fmt.Errorf("invalid status code")
+)
+
+type (
+	URLPreparator func(*url.URL) *url.URL
+	StatusChecker func(code int) bool
+)
+
+type Addr interface {
+	Addr() string
+
+	IsUnix() bool
+	ExtractUnixSocketPath() (string, error)
+}
+
+type Client struct {
+	transport   http.RoundTripper
+	clientsPool *pool.Pool[*http.Client]
+
+	hostURLPreparator URLPreparator
+	urlPreparator     URLPreparator
+
+	logger *slog.Logger
+
+	isUnix bool
+	host   string
+
+	requestOpts []RequestOpt
+}
+
+func NewClient(addr Addr, opts ...ClientOpt) (*Client, error) {
+	if value.IsNil(addr) {
+		return nil, fmt.Errorf("pass nil Addr to http client")
+	}
+
+	passedHost := addr.Addr()
+
+	if passedHost == "" {
+		return nil, fmt.Errorf("pass empty host to http client")
+	}
+
+	dialHost := passedHost
+
+	clientOpts := newClientOpts()
+	for _, o := range opts {
+		o(clientOpts)
+	}
+
+	logger := clientOpts.logger
+	if logger != nil {
+		logger = slog.New(logger.Handler())
+	}
+
+	hostForURL := addr.Addr()
+	dialProtocol := "tcp"
+	isUnix := false
+
+	if addr.IsUnix() {
+		unixPath, err := addr.ExtractUnixSocketPath()
+		if err != nil {
+			return nil, err
+		}
+
+		dialProtocol = "unix"
+		dialHost = unixPath
+		hostForURL = "127.0.0.1"
+		isUnix = true
+	} else {
+		host, port, err := net.SplitHostPort(dialHost)
+		if err != nil {
+			return nil, fmt.Errorf("cannot extract host from '%s': %w", dialHost, err)
+		}
+
+		switch host {
+		case "0.0.0.0":
+			hst := net.JoinHostPort("127.0.0.1", port)
+			dialHost = hst
+			hostForURL = hst
+			passedHost = hst
+		case "::":
+			hst := net.JoinHostPort("::", port)
+			dialHost = hst
+			hostForURL = hst
+			passedHost = hst
+		}
+	}
+
+	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, fmt.Errorf("http.DefaultTransport is not *http.Transport")
+	}
+
+	resultTransport := defaultTransport.Clone()
+	defaultDialContext := defaultTransport.DialContext
+
+	resultTransport.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
+		return defaultDialContext(ctx, dialProtocol, dialHost)
+	}
+
+	resultTransport.Proxy = http.ProxyFromEnvironment
+
+	hostURLPreparator := DummyURLPreparator
+	if !clientOpts.noReplaceHost {
+		hostURLPreparator = func(u *url.URL) *url.URL {
+			u.Host = hostForURL
+			return u
+		}
+	}
+
+	c := &Client{
+		transport:         resultTransport,
+		hostURLPreparator: hostURLPreparator,
+		urlPreparator:     clientOpts.urlPreparator,
+		logger:            logger,
+		isUnix:            isUnix,
+		host:              passedHost,
+		requestOpts:       clientsOptsToRequest(opts),
+	}
+
+	c.clientsPool = pool.NewPool(func() *http.Client {
+		return &http.Client{
+			Transport: c.transport,
+		}
+	})
+
+	return c, nil
+}
+
+func (c *Client) Get(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	return c.do(
+		parent,
+		http.MethodGet,
+		c.pathURL(path),
+		opts,
+	)
+}
+
+func Get(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClient(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Get(parent, path, opts...)
+}
+
+func (c *Client) Post(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	return c.do(
+		parent,
+		http.MethodPost,
+		c.pathURL(path),
+		opts,
+	)
+}
+
+func Post(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClient(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Post(parent, path, opts...)
+}
+
+func (c *Client) Head(parent context.Context, path string, opts ...RequestOpt) error {
+	r, err := c.do(
+		parent,
+		http.MethodHead,
+		c.pathURL(path),
+		opts,
+	)
+
+	err = appendErr(err, r.Close())
+
+	return err
+}
+
+func Head(parent context.Context, addr Addr, path string, opts ...RequestOpt) error {
+	c, err := NewClient(addr)
+	if err != nil {
+		return err
+	}
+
+	return c.Head(parent, path, opts...)
+}
+
+func (c *Client) Delete(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	return c.do(
+		parent,
+		http.MethodDelete,
+		c.pathURL(path),
+		opts,
+	)
+}
+
+func Delete(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClient(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Delete(parent, path, opts...)
+}
+
+func (c *Client) Put(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	return c.do(
+		parent,
+		http.MethodPut,
+		c.pathURL(path),
+		opts,
+	)
+}
+
+func Put(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClient(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Put(parent, path, opts...)
+}
+
+func (c *Client) Patch(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	return c.do(
+		parent,
+		http.MethodPatch,
+		c.pathURL(path),
+		opts,
+	)
+}
+
+func Patch(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClient(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Patch(parent, path, opts...)
+}
+
+func (c *Client) pathURL(path string) *url.URL {
+	return &url.URL{
+		Path: path,
+	}
+}
+
+func (c *Client) getRequest(method string, u *url.URL, opts []RequestOpt) (*http.Request, *RequestOpts, error) {
+	if u == nil {
+		return nil, nil, fmt.Errorf("empty url for host '%s' with method %s", c.host, method)
+	}
+
+	if u.Path == "" {
+		return nil, nil, fmt.Errorf("empty url for host '%s' with method %s", c.host, method)
+	}
+
+	passedPath := u.Path
+
+	requestOpts := newRequestOpts()
+
+	for _, o := range c.requestOpts {
+		o(requestOpts)
+	}
+
+	for _, o := range opts {
+		o(requestOpts)
+	}
+
+	rURL := copyURL(u)
+	rURL.Scheme = requestOpts.schema
+	rURL = c.hostURLPreparator(rURL)
+	rURL = c.urlPreparator(rURL)
+
+	if _, err := url.Parse(rURL.String()); err != nil {
+		return nil, nil, c.err("url is incorrect", err, method, passedPath)
+	}
+
+	res, err := http.NewRequest(method, rURL.String(), requestOpts.body)
+	if err != nil {
+		return nil, nil, c.err("cannot create http request", err, method, passedPath)
+	}
+
+	if len(requestOpts.headers) > 0 {
+		for k, v := range requestOpts.headers {
+			res.Header.Add(k, v)
+		}
+	}
+
+	return res, requestOpts, nil
+}
+
+func (c *Client) do(parent context.Context, method string, u *url.URL, opts []RequestOpt) (*ResponseBody, error) {
+	r, requestOpts, err := c.getRequest(method, u, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	cl := c.clientsPool.Get()
+	if cl == nil {
+		return nil, c.err("cannot get client", fmt.Errorf("pool return nil"), method, u.Path)
+	}
+
+	defer func() {
+		c.clientsPool.Put(cl)
+	}()
+
+	c.log(requestOpts, "start request", logFuncInfo, r, 0)
+
+	ctx, cancel := context.WithTimeout(parent, requestOpts.timeout)
+	defer cancel()
+
+	r = r.WithContext(ctx)
+
+	response, err := cl.Do(r)
+
+	if err != nil {
+		if urlErr, ok := err.(*url.Error); ok {
+			if urlErr.Timeout() {
+				return nil, c.errRequest(requestOpts, LogFailRequestMsg, ErrTimeout, r, 0)
+			}
+		}
+
+		return nil, c.errRequest(requestOpts, LogFailRequestMsg, err, r, 0)
+	}
+
+	c.writeResponseHeaders(response, requestOpts)
+
+	statusCode := response.StatusCode
+
+	var respBody *ResponseBody
+	if !value.IsNil(response.Body) {
+		respBody = newResponseBody(
+			response.Body,
+			r.URL.Host,
+			method,
+			requestOpts.autoCloseResponseBody,
+			content.GetResponseContentType(response),
+		).withLogger(
+			c.readBodyLogger(requestOpts, r, statusCode),
+		)
+	}
+
+	if !requestOpts.statusChecker(response.StatusCode) {
+		msg := fmt.Sprintf("%v: %d", ErrInvalidStatusCode, statusCode)
+
+		err := ErrInvalidStatusCode
+
+		err = appendErr(err, c.handleResponseErr(requestOpts, respBody, r))
+
+		return respBody, c.errRequest(requestOpts, msg, err, r, statusCode)
+	}
+
+	c.log(requestOpts, LogOKRequestMsg, logFuncInfo, r, statusCode)
+
+	return respBody, nil
+}
+
+func (c *Client) writeResponseHeaders(r *http.Response, opts *RequestOpts) {
+	if opts.responseHeadersDest == nil {
+		return
+	}
+
+	if len(r.Header) == 0 {
+		return
+	}
+
+	for k := range r.Header {
+		if !opts.responseHeadersFilter(k) {
+			continue
+		}
+
+		opts.responseHeadersDest[k] = r.Header.Get(k)
+	}
+}
+
+func (c *Client) handleResponseErr(requestOpts *RequestOpts, respBody *ResponseBody, r *http.Request) error {
+	if respBody == nil {
+		return nil
+	}
+
+	c.logBody(requestOpts, respBody, r)
+
+	if requestOpts.autoCloseResponseBody {
+		if err := respBody.Close(); err != nil {
+			c.log(requestOpts, "cannot close response body", logFuncErr, r, 0)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Client) err(msg string, errR error, method, passedPath string) error {
+	return fmt.Errorf(
+		"%s '%s %s' to server '%s': %w",
+		msg,
+		method,
+		passedPath,
+		c.host,
+		errR,
+	)
+}
+
+func (c *Client) errRequest(requestOpts *RequestOpts, msg string, errR error, r *http.Request, code int) error {
+	res := c.err(msg, errR, r.Method, r.URL.Path)
+	if code > 0 {
+		res = fmt.Errorf("%w response code %d", res, code)
+	}
+
+	c.log(requestOpts, msg, logFuncErr, r, code, slog.String(LogErrAttr, errR.Error()))
+
+	return res
+}
+
+func appendErr(err, err2 error) error {
+	if err2 == nil {
+		return err
+	}
+
+	return fmt.Errorf("%w; %w", err, err2)
+}

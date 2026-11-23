@@ -3,31 +3,35 @@
 
 package log
 
-import "log/slog"
+import (
+	"log/slog"
+
+	"github.com/name212/netpacket/l7/http/log"
+)
 
 const (
 	SourceAddrAttr  = "client_ip"
-	UserAttr        = "user"
+	UserAttr        = log.UserAttr
 	RequestIDAttr   = "request_id"
-	MethodAttr      = "method"
-	PathAttr        = "path"
-	UserAgentAttr   = "agent"
-	ResponseLenAttr = "response_len"
-	StatusCodeAttr  = "status"
-	LogTypeAttr     = "logt"
+	MethodAttr      = log.MethodAttr
+	PathAttr        = log.PathAttr
+	UserAgentAttr   = log.UserAgentAttr
+	ResponseLenAttr = log.ResponseLenAttr
+	StatusCodeAttr  = log.StatusCodeAttr
+	LogTypeAttr     = log.LogTypeAttr
 	BindAddrAttr    = "bind_addr"
 
-	ErrAttr = "error"
+	ErrAttr = log.LogTypeAttr
 
 	PanicAttr      = "panic"
 	PanicTraceAttr = "trace"
 )
 
 const (
-	LogTypeServerVal = "server"
+	LogTypeServerVal = "http-server"
 
-	OKRequestMsg   = "Request OK"
-	FailRequestMsg = "Request error"
+	OKRequestMsg   = log.OKRequestMsg
+	FailRequestMsg = log.FailRequestMsg
 
 	DefaultLoggerBind = "unknown"
 
