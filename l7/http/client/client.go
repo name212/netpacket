@@ -368,7 +368,7 @@ func (c *Client) writeResponseHeaders(r *http.Response, opts *RequestOpts) {
 	}
 
 	for k := range r.Header {
-		if ! opts.responseHeadersFilter(k) {
+		if !opts.responseHeadersFilter(k) {
 			continue
 		}
 

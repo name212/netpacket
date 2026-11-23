@@ -14,8 +14,8 @@ type responseHeadersFilter func(k string) bool
 type RequestOpts struct {
 	*ClientOpts
 
-	body io.ReadCloser
-	responseHeadersDest Headers
+	body                  io.ReadCloser
+	responseHeadersDest   Headers
 	responseHeadersFilter responseHeadersFilter
 }
 
@@ -23,9 +23,9 @@ type RequestOpt func(o *RequestOpts)
 
 func newRequestOpts() *RequestOpts {
 	res := &RequestOpts{
-		ClientOpts: newClientOpts(),
-		body:       nil,
-		responseHeadersDest: nil,
+		ClientOpts:            newClientOpts(),
+		body:                  nil,
+		responseHeadersDest:   nil,
 		responseHeadersFilter: noResponseHeadersFilter,
 	}
 
@@ -121,7 +121,7 @@ func WithResponseHeaders(dest Headers, headersToConsume ...string) RequestOpt {
 		o.responseHeadersDest = dest
 
 		if len(headersToConsume) > 0 {
-			o.responseHeadersFilter = getResponseHeadersFilter(headersToConsume) 
+			o.responseHeadersFilter = getResponseHeadersFilter(headersToConsume)
 		}
 	}
 }
@@ -138,7 +138,7 @@ func noResponseHeadersFilter(string) bool {
 
 func getResponseHeadersFilter(headers []string) responseHeadersFilter {
 	fm := make(map[string]struct{}, len(headers))
-	for _, h := range headers{
+	for _, h := range headers {
 		fm[h] = struct{}{}
 	}
 
