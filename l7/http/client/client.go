@@ -146,18 +146,12 @@ func NewClient(addr Addr, opts ...ClientOpt) (*Client, error) {
 }
 
 func (c *Client) Get(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
-	r, err := c.do(
+	return c.do(
 		parent,
 		http.MethodGet,
 		c.pathURL(path),
 		opts,
 	)
-
-	if err != nil {
-		return nil, appendErr(err, r.Close())
-	}
-
-	return r, nil
 }
 
 func Get(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
@@ -170,18 +164,12 @@ func Get(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*R
 }
 
 func (c *Client) Post(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
-	r, err := c.do(
+	return c.do(
 		parent,
 		http.MethodPost,
 		c.pathURL(path),
 		opts,
 	)
-
-	if err != nil {
-		return nil, appendErr(err, r.Close())
-	}
-
-	return r, nil
 }
 
 func Post(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
@@ -216,18 +204,12 @@ func Head(parent context.Context, addr Addr, path string, opts ...RequestOpt) er
 }
 
 func (c *Client) Delete(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
-	r, err := c.do(
+	return c.do(
 		parent,
 		http.MethodDelete,
 		c.pathURL(path),
 		opts,
 	)
-
-	if err != nil {
-		return nil, appendErr(err, r.Close())
-	}
-
-	return r, nil
 }
 
 func Delete(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
@@ -240,18 +222,12 @@ func Delete(parent context.Context, addr Addr, path string, opts ...RequestOpt) 
 }
 
 func (c *Client) Put(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
-	r, err := c.do(
+	return c.do(
 		parent,
 		http.MethodPut,
 		c.pathURL(path),
 		opts,
 	)
-
-	if err != nil {
-		return nil, appendErr(err, r.Close())
-	}
-
-	return r, nil
 }
 
 func Put(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
@@ -264,18 +240,12 @@ func Put(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*R
 }
 
 func (c *Client) Patch(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
-	r, err := c.do(
+	return c.do(
 		parent,
 		http.MethodPatch,
 		c.pathURL(path),
 		opts,
 	)
-
-	if err != nil {
-		return nil, appendErr(err, r.Close())
-	}
-
-	return r, nil
 }
 
 func Patch(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*ResponseBody, error) {
