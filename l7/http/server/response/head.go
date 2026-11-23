@@ -14,7 +14,7 @@ func Head(w http.ResponseWriter, r *http.Request, code int, headers ...Headers) 
 }
 
 func writeHead(w http.ResponseWriter, r *http.Request, code int, headers []Headers) {
-	setHeaders(w, headers)
+	_ = setHeaders(w, headers)
 
 	w.WriteHeader(code)
 

@@ -12,6 +12,7 @@ import (
 	"net/url"
 
 	"github.com/name212/netpacket/l7/http/client/pool"
+	"github.com/name212/netpacket/l7/http/content"
 	"github.com/name212/netpacket/utils/value"
 )
 
@@ -334,28 +335,41 @@ func (c *Client) do(parent context.Context, method string, u *url.URL, opts []Re
 	if err != nil {
 		if urlErr, ok := err.(*url.Error); ok {
 			if urlErr.Timeout() {
-				return nil, c.errRequest(requestOpts, FailRequestMsg, ErrTimeout, r, 0)
+				return nil, c.errRequest(requestOpts, LogFailRequestMsg, ErrTimeout, r, 0)
 			}
 		}
 
-		return nil, c.errRequest(requestOpts, FailRequestMsg, err, r, 0)
+		return nil, c.errRequest(requestOpts, LogFailRequestMsg, err, r, 0)
 	}
 
 	c.writeResponseHeaders(response, requestOpts)
 
-	var rBody *ResponseBody
+	statusCode := response.StatusCode
+
+	var respBody *ResponseBody
 	if !value.IsNil(response.Body) {
-		rBody = newResponseBody(response.Body, r.URL.Host, method, requestOpts.autoCloseResponseBody)
+		respBody = newResponseBody(
+			response.Body,
+			r.URL.Host,
+			method,
+			requestOpts.autoCloseResponseBody,
+			content.GetResponseContentType(response),
+		).withLogger(
+			c.readBodyLogger(requestOpts, r, statusCode),
+		)
 	}
 
 	if !requestOpts.statusChecker(response.StatusCode) {
-		msg := fmt.Sprintf("%v: %d", ErrInvalidStatusCode, response.StatusCode)
-		return rBody, c.errRequest(requestOpts, msg, ErrInvalidStatusCode, r, response.StatusCode)
+		msg := fmt.Sprintf("%v: %d", ErrInvalidStatusCode, statusCode)
+
+		err = appendErr(err, c.handleResponseErr(requestOpts, respBody, r))
+
+		return respBody, c.errRequest(requestOpts, msg, ErrInvalidStatusCode, r, statusCode)
 	}
 
-	c.log(requestOpts, OKRequestMsg, logFuncInfo, r, response.StatusCode)
+	c.log(requestOpts, LogOKRequestMsg, logFuncInfo, r, statusCode)
 
-	return rBody, nil
+	return respBody, nil
 }
 
 func (c *Client) writeResponseHeaders(r *http.Response, opts *RequestOpts) {
@@ -376,6 +390,23 @@ func (c *Client) writeResponseHeaders(r *http.Response, opts *RequestOpts) {
 	}
 }
 
+func (c *Client) handleResponseErr(requestOpts *RequestOpts, respBody *ResponseBody, r *http.Request) error {
+	if respBody == nil {
+		return nil
+	}
+
+	c.logBody(requestOpts, respBody, r)
+
+	if requestOpts.autoCloseResponseBody {
+		if err := respBody.Close(); err != nil {
+			c.log(requestOpts, "cannot close response body", logFuncErr, r, 0)
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (c *Client) err(msg string, errR error, method, passedPath string) error {
 	return fmt.Errorf(
 		"%s '%s %s' to server '%s': %w",
@@ -393,58 +424,9 @@ func (c *Client) errRequest(requestOpts *RequestOpts, msg string, errR error, r 
 		res = fmt.Errorf("%w response code %d", res, code)
 	}
 
-	c.log(requestOpts, msg, logFuncErr, r, code, slog.String(ErrAttr, errR.Error()))
+	c.log(requestOpts, msg, logFuncErr, r, code, slog.String(LogErrAttr, errR.Error()))
 
 	return res
-}
-
-type logFunc func(string, ...any)
-type logFuncConsumer func(l *slog.Logger) logFunc
-
-func logFuncErr(l *slog.Logger) logFunc {
-	return l.Error
-}
-
-func logFuncInfo(l *slog.Logger) logFunc {
-	return l.Info
-}
-
-func (c *Client) log(requestOpts *RequestOpts, msg string, fc logFuncConsumer, r *http.Request, code int, attrs ...any) {
-	logger := requestOpts.logger
-	if logger == nil {
-		logger = c.logger
-	}
-
-	if logger == nil {
-		return
-	}
-
-	a := []any{
-		slog.String(LogTypeAttr, LogTypeClientVal),
-		slog.String(MethodAttr, r.Method),
-		slog.String(PathAttr, r.URL.Path),
-		slog.String(HostAttr, c.host),
-	}
-
-	if id := requestOpts.getUserID(); id != "" {
-		a = append(a, slog.String(UserAttr, id))
-	}
-
-	if agent := requestOpts.getUserAgent(); agent != "" {
-		a = append(a, slog.String(UserAgentAttr, agent))
-	}
-
-	if code > 0 {
-		a = append(a, slog.Int(StatusCodeAttr, code))
-	}
-
-	if c.isUnix {
-		a = append(a, slog.Bool(IsUnixSocketAttr, true))
-	}
-
-	a = append(a, attrs...)
-
-	fc(logger)(msg, a...)
 }
 
 func appendErr(err, err2 error) error {

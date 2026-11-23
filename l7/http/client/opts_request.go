@@ -126,6 +126,18 @@ func WithResponseHeaders(dest Headers, headersToConsume ...string) RequestOpt {
 	}
 }
 
+func WithLogResponseBodyWhenError(l slog.Level, limit int64) RequestOpt {
+	return func(o *RequestOpts) {
+		WithClientLogResponseBodyWhenError(l, limit)(o.ClientOpts)
+	}
+}
+
+func WithNoLogResponseBodyWhenError() RequestOpt {
+	return func(o *RequestOpts) {
+		WithClientNoLogResponseBodyWhenError()(o.ClientOpts)
+	}
+}
+
 func WithHTTPS() RequestOpt {
 	return func(o *RequestOpts) {
 		WithClientHTTPS()(o.ClientOpts)

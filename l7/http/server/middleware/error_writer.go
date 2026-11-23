@@ -5,12 +5,14 @@ package middleware
 
 import (
 	"net/http"
+
+	"github.com/name212/netpacket/l7/http/content"
 )
 
-type ErrorWriter func(msg string, err error) []byte
+type ErrorWriter func(msg string, err error) ([]byte, content.ContentType)
 
-func TextErrorWriter(msg string, err error) []byte {
-	return []byte(msg)
+func TextErrorWriter(msg string, err error) ([]byte, content.ContentType) {
+	return []byte(msg), content.ContentText
 }
 
 func SetCtxErrorWriter(next http.Handler, writer ErrorWriter) http.Handler {

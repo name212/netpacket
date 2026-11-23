@@ -5,6 +5,7 @@ package client
 
 import (
 	"log/slog"
+	"math"
 	"time"
 
 	"github.com/name212/netpacket/l7/http/server/middleware"
@@ -12,7 +13,9 @@ import (
 
 const (
 	DefaultTimeoutSeconds = 10
+	DefaultLogBodyLimit   = int64(2 * 1024)
 	userAgentHeader       = "User-Agent"
+	noLogBodyLevel        = math.MaxInt
 )
 
 type Headers = map[string]string
@@ -26,6 +29,8 @@ type ClientOpts struct {
 	urlPreparator         URLPreparator
 	statusChecker         StatusChecker
 	autoCloseResponseBody bool
+	logBodyErr            slog.Level
+	logBodyLimit          int64
 }
 
 type ClientOpt func(o *ClientOpts)
@@ -39,6 +44,8 @@ func newClientOpts() *ClientOpts {
 		urlPreparator:         DummyURLPreparator,
 		statusChecker:         StatusChecker200X,
 		autoCloseResponseBody: true,
+		logBodyErr:            slog.LevelDebug,
+		logBodyLimit:          DefaultLogBodyLimit,
 	}
 }
 
@@ -114,6 +121,21 @@ func WithClientNoAutoCloseResponseBody() ClientOpt {
 	}
 }
 
+func WithClientLogResponseBodyWhenError(l slog.Level, limit int64) ClientOpt {
+	return func(o *ClientOpts) {
+		o.logBodyErr = l
+		if limit > 0 {
+			o.logBodyLimit = limit
+		}
+	}
+}
+
+func WithClientNoLogResponseBodyWhenError() ClientOpt {
+	return func(o *ClientOpts) {
+		o.logBodyErr = noLogBodyLevel
+	}
+}
+
 func StatusChecker200X(code int) bool {
 	return code >= 200 && code < 299
 }
@@ -158,4 +180,21 @@ func (o *ClientOpts) getUserID() string {
 
 func (o *ClientOpts) getUserAgent() string {
 	return o.getHeader(userAgentHeader)
+}
+
+func (o *ClientOpts) responseBodyErrLogFunc(logger *slog.Logger) logFunc {
+	if logger == nil || o.logBodyErr == noLogBodyLevel {
+		return nil
+	}
+
+	switch o.logBodyErr {
+	case slog.LevelInfo:
+		return logger.Info
+	case slog.LevelError:
+		return logger.Error
+	case slog.LevelWarn:
+		return logger.Warn
+	}
+
+	return logger.Debug
 }

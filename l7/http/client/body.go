@@ -4,31 +4,49 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"reflect"
+
+	"github.com/name212/netpacket/l7/http/content"
 )
 
 var (
-	ErrClosed = fmt.Errorf("response body already closed")
+	ErrClosed    = fmt.Errorf("response body already closed")
+	ErrEmptyBody = fmt.Errorf("response body is empty")
 )
 
 type ResponseBody struct {
-	reader    io.ReadCloser
-	url       string
-	method    string
-	needClose bool
+	reader      io.ReadCloser
+	url         string
+	method      string
+	needClose   bool
+	contentType content.ContentType
+	logger      *responseBodyReadLogger
 
 	closed bool
 }
 
-func newResponseBody(r io.ReadCloser, url, method string, needClose bool) *ResponseBody {
+func newResponseBody(r io.ReadCloser, url, method string, needClose bool, contentType content.ContentType) *ResponseBody {
 	return &ResponseBody{
-		reader:    r,
-		url:       url,
-		method:    method,
-		needClose: needClose,
-		closed:    false,
+		reader:      r,
+		url:         url,
+		method:      method,
+		needClose:   needClose,
+		closed:      false,
+		contentType: contentType,
+		logger:      nil,
 	}
+}
+
+func (r *ResponseBody) withLogger(l *responseBodyReadLogger) *ResponseBody {
+	r.logger = l
+	return r
+}
+
+func (r *ResponseBody) GetContentType() content.ContentType {
+	return r.contentType
 }
 
 func (r *ResponseBody) Read(p []byte) (int, error) {
@@ -36,13 +54,16 @@ func (r *ResponseBody) Read(p []byte) (int, error) {
 		return 0, nil
 	}
 
-	const errMsg = "as reader"
+	const errMsg = "as bytes buffer reader"
 
 	if err := r.isClosed(errMsg); err != nil {
 		return 0, err
 	}
 
 	n, err := r.reader.Read(p)
+
+	r.logger.read(int64(n), errMsg)
+
 	if err != nil {
 		return n, r.readError(errMsg, err, n)
 	}
@@ -71,7 +92,80 @@ func (r *ResponseBody) ReadString() (string, error) {
 	return string(res), nil
 }
 
-func (r *ResponseBody) Copy(w io.Writer) (int64, error) {
+func (r *ResponseBody) ReadAs[T any](c ...*UnmarshalerConsumer) (T, error) {
+	var zero T
+
+	msg := fmt.Sprintf("as %s", reflect.TypeFor[T]().String())
+
+	if r == nil {
+		return zero, ErrEmptyBody
+	}
+
+	fConsumer := defaultUnmarshalerConsumer
+	if len(c) > 0 && c[0] != nil {
+		fConsumer = c[0]
+	}
+
+	f, err := fConsumer.get(r.contentType)
+	if err != nil {
+		return zero, r.readError(msg, err)
+	}
+
+	bt, err := r.readBytes(msg)
+	if err != nil {
+		return zero, err
+	}
+
+	btLen := len(bt)
+
+	if btLen == 0 {
+		return zero, r.readError(ErrEmptyBody.Error(), ErrEmptyBody, 0)
+	}
+
+	r.logger.read(int64(btLen), msg)
+
+	var res T
+	if err := f(bt, &res); err != nil {
+		const uMsg = "cannot unmarshal response"
+		r.logger.body(bt, fmt.Sprintf("%s %s", uMsg, msg))
+		return zero, r.readError(uMsg, err)
+	}
+
+	return res, nil
+}
+
+func (r *ResponseBody) CopyKeep(w io.Writer, limit ...int64) (int64, error) {
+	if r == nil {
+		return 0, nil
+	}
+
+	const errMsg = "copy keep to dest"
+
+	if err := r.isClosed(errMsg); err != nil {
+		return 0, err
+	}
+
+	curReader := r.reader
+
+	buf := bytes.NewBuffer(nil)
+	r.reader = newReaderClose(buf)
+
+	destWriter := newLimitWriter(w, limit)
+
+	writer := io.MultiWriter(buf, destWriter)
+
+	n, err := io.Copy(writer, curReader)
+	n = destWriter.getWritten(n)
+
+	err = r.appendErrClose(err, curReader.Close())
+	if err != nil {
+		err = r.readError(errMsg, err)
+	}
+
+	return n, err
+}
+
+func (r *ResponseBody) Copy(w io.Writer, limit ...int64) (int64, error) {
 	if r == nil {
 		return 0, nil
 	}
@@ -82,7 +176,13 @@ func (r *ResponseBody) Copy(w io.Writer) (int64, error) {
 		return 0, err
 	}
 
-	n, err := io.Copy(w, r.reader)
+	destWriter := newLimitWriter(w, limit)
+
+	n, err := io.Copy(destWriter, r.reader)
+	n = destWriter.getWritten(n)
+
+	r.logger.read(n, errMsg)
+
 	if err != nil {
 		err = r.readError(errMsg, err)
 
@@ -138,6 +238,7 @@ func (r *ResponseBody) readBytes(msg string) ([]byte, error) {
 	}
 
 	res, err := io.ReadAll(r.reader)
+
 	if err != nil {
 		err = r.readError(msg, err)
 
@@ -151,6 +252,8 @@ func (r *ResponseBody) readBytes(msg string) ([]byte, error) {
 	if r.needClose {
 		err = r.appendErrClose(nil, r.close())
 	}
+
+	r.logger.read(int64(len(res)), msg)
 
 	return res, err
 }

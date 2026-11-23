@@ -3,14 +3,20 @@
 
 package response
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/name212/netpacket/l7/http/content"
+)
 
 type Headers = map[string]string
 
-func setHeaders(w http.ResponseWriter, headers []Headers) {
+func setHeaders(w http.ResponseWriter, headers []Headers) content.ContentType {
 	if len(headers) == 0 {
-		return
+		return content.ContentNo
 	}
+
+	ct := content.ContentNo
 
 	for _, hh := range headers {
 		if len(hh) == 0 {
@@ -18,9 +24,14 @@ func setHeaders(w http.ResponseWriter, headers []Headers) {
 		}
 
 		for k, v := range hh {
+			if k == content.ContentTypeHeader {
+				ct = content.CustomContentType(v)
+			}
 			w.Header().Add(k, v)
 		}
 	}
+
+	return ct
 }
 
 func getHeaders(headers []Headers) []Headers {

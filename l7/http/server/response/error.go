@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/name212/netpacket/l7/http/content"
 	"github.com/name212/netpacket/l7/http/server/log"
 	"github.com/name212/netpacket/l7/http/server/middleware"
 )
@@ -31,31 +32,16 @@ func Error(w http.ResponseWriter, r *http.Request, code int, msg string, err err
 
 	logger.RequestError(r, msg, err)
 
-	w.WriteHeader(code)
-
-	out := data.ErrorWriter()(msg, err)
-	if _, errW := w.Write(out); errW != nil {
+	l, errW := writeErrorContent(w, data, msg, err, code)
+	if errW != nil {
 		logger.RequestError(r, LogMsgErrWriteErrorResponse, errW)
 	}
 
-	logger.RequestErrorSent(r, code, len(out))
+	logger.RequestErrorSent(r, code, l)
 }
 
 func NotFound(w http.ResponseWriter, r *http.Request) {
-	data, r := middleware.GetServerData(r)
-
-	logger := data.Logger()
-
-	code := http.StatusNotFound
-
-	w.WriteHeader(code)
-
-	out := data.ErrorWriter()(NotFoundMsg, ErrNotFound)
-	if _, errW := w.Write(out); errW != nil {
-		logger.RequestError(r, LogMsgErrWriteNotFondResponse, errW)
-	}
-
-	logger.RequestErrorSent(r, code, len(out))
+	Error(w, r, http.StatusNotFound, NotFoundMsg, ErrNotFound)
 }
 
 func InternalError(w http.ResponseWriter, r *http.Request, msg string, err error) {
@@ -65,10 +51,9 @@ func InternalError(w http.ResponseWriter, r *http.Request, msg string, err error
 func Panic(w http.ResponseWriter, r *http.Request, err error) {
 	data, r := middleware.GetServerData(r)
 
-	w.WriteHeader(http.StatusInternalServerError)
+	_, errW := writeErrorContent(w, data, PanicMsg, err, http.StatusInternalServerError)
 
-	out := data.ErrorWriter()(NotFoundMsg, ErrNotFound)
-	if _, errW := w.Write(out); errW != nil {
+	if errW != nil {
 		logger := data.Logger()
 
 		if logger != nil {
@@ -85,4 +70,23 @@ func LogInternalError(w http.ResponseWriter, r *http.Request, msg string, err er
 	logger := data.Logger()
 
 	logger.RequestError(r, msg, err)
+}
+
+func getErrorContent(w http.ResponseWriter, d *middleware.CtxServerData, msg string, err error, code int) []byte {
+	out, ct := d.ErrorWriter()(msg, err)
+
+	if ct == "" {
+		ct = content.ContentText
+	}
+
+	w.Header().Add(content.ContentTypeHeader, string(ct))
+
+	w.WriteHeader(code)
+
+	return out
+}
+
+func writeErrorContent(w http.ResponseWriter, d *middleware.CtxServerData, msg string, err error, code int) (int, error) {
+	out := getErrorContent(w, d, msg, err, code)
+	return w.Write(out)
 }
