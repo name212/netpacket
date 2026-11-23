@@ -1,3 +1,6 @@
+// Copyright 2026
+// license that can be found in the LICENSE file.
+
 package client
 
 import (
@@ -17,6 +20,12 @@ type Unmarshaler func([]byte, any) error
 
 type UnmarshalerConsumer struct {
 	m map[content.ContentType]Unmarshaler
+}
+
+func SetDefaultUnmarshalerConsumer(c *UnmarshalerConsumer) {
+	if c != nil {
+		defaultUnmarshalerConsumer = c
+	}
 }
 
 func NewUnmarshalerConsumer(textUnmarshaler ...Unmarshaler) *UnmarshalerConsumer {
