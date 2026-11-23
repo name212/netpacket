@@ -32,7 +32,7 @@ func doHealth(ctx context.Context, addr *bind.Addr, path string, logger []*slog.
 }
 
 func doHealthAsCmd(p *bind.AddrParams, cmdName, path string, logger []*slog.Logger) {
-	if len(os.Args) > 1 && os.Args[1] != cmdName {
+	if len(os.Args) < 2 || os.Args[1] != cmdName {
 		return
 	}
 

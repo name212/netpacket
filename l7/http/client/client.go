@@ -66,7 +66,7 @@ func NewClient(addr Addr, opts ...ClientOpt) (*Client, error) {
 	}
 
 	logger := clientOpts.logger
-	if logger == nil {
+	if logger != nil {
 		logger = slog.New(logger.Handler())
 	}
 
@@ -84,6 +84,24 @@ func NewClient(addr Addr, opts ...ClientOpt) (*Client, error) {
 		dialHost = unixPath
 		hostForURL = "127.0.0.1"
 		isUnix = true
+	} else {
+		host, port, err := net.SplitHostPort(dialHost)
+		if err != nil {
+			return nil, fmt.Errorf("cannot extract host from '%s': %w", dialHost, err)
+		}
+
+		switch host {
+		case "0.0.0.0":
+			hst := net.JoinHostPort("127.0.0.1", port)
+			dialHost = hst
+			hostForURL = hst
+			passedHost = hst
+		case "::":
+			hst := net.JoinHostPort("::", port)
+			dialHost = hst
+			hostForURL = hst
+			passedHost = hst
+		}
 	}
 
 	defaultTransport, ok := http.DefaultTransport.(*http.Transport)
@@ -305,7 +323,7 @@ func (c *Client) getRequest(method string, u *url.URL, opts []RequestOpt) (*http
 		return nil, nil, c.err("url is incorrect", err, method, passedPath)
 	}
 
-	res, err := http.NewRequest(method, u.String(), requestOpts.body)
+	res, err := http.NewRequest(method, rURL.String(), requestOpts.body)
 	if err != nil {
 		return nil, nil, c.err("cannot create http request", err, method, passedPath)
 	}
@@ -359,7 +377,8 @@ func (c *Client) do(parent context.Context, method string, u *url.URL, opts []Re
 	}
 
 	if !requestOpts.statusChecker(response.StatusCode) {
-		return rBody, c.errRequest(requestOpts, ErrInvalidStatusCode.Error(), ErrInvalidStatusCode, r, response.StatusCode)
+		msg := fmt.Sprintf("%v: %d", ErrInvalidStatusCode, response.StatusCode)
+		return rBody, c.errRequest(requestOpts, msg, ErrInvalidStatusCode, r, response.StatusCode)
 	}
 
 	c.log(requestOpts, OKRequestMsg, logFuncInfo, r, response.StatusCode)

@@ -31,5 +31,5 @@ func DoReadyZAsCmd(p *bind.AddrParams, cmdName string, logger ...*slog.Logger) {
 }
 
 func DoReadyZCmd(p *bind.AddrParams, logger ...*slog.Logger) {
-	doHealthAsCmd(p, ReadyCmd, server.ReadyZPath, logger)
+	DoReadyZAsCmd(p, ReadyCmd, logger...)
 }
