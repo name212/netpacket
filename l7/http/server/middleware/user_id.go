@@ -46,7 +46,7 @@ func setUserID(w http.ResponseWriter, r *http.Request, c UserIDConsumer) *http.R
 
 		out, ct := data.ErrorWriter()(NotFoundUserIDMsg, err)
 		w.Header().Add(content.ContentTypeHeader, ct)
-		
+
 		w.WriteHeader(http.StatusForbidden)
 
 		if _, errW := w.Write(out); errW != nil {

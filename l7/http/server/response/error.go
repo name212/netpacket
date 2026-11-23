@@ -79,7 +79,7 @@ func getErrorContent(w http.ResponseWriter, d *middleware.CtxServerData, msg str
 		ct = content.ContentText
 	}
 
-	w.Header().Add(content.ContentTypeHeader, string(ct))
+	w.Header().Add(content.ContentTypeHeader, ct)
 
 	w.WriteHeader(code)
 
