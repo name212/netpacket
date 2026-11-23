@@ -9,9 +9,14 @@ import (
 	"time"
 )
 
+type responseHeadersFilter func(k string) bool
+
 type RequestOpts struct {
 	*ClientOpts
+
 	body io.ReadCloser
+	responseHeadersDest Headers
+	responseHeadersFilter responseHeadersFilter
 }
 
 type RequestOpt func(o *RequestOpts)
@@ -20,6 +25,8 @@ func newRequestOpts() *RequestOpts {
 	res := &RequestOpts{
 		ClientOpts: newClientOpts(),
 		body:       nil,
+		responseHeadersDest: nil,
+		responseHeadersFilter: noResponseHeadersFilter,
 	}
 
 	return res
@@ -99,15 +106,45 @@ func WithUserAgent(a string) RequestOpt {
 	}
 }
 
-func WithHeader(h Headers) RequestOpt {
+func WithHeaders(h Headers) RequestOpt {
 	return func(o *RequestOpts) {
 		WithClientHeaders(h)(o.ClientOpts)
+	}
+}
+
+func WithResponseHeaders(dest Headers, headersToConsume ...string) RequestOpt {
+	return func(o *RequestOpts) {
+		if dest == nil {
+			return
+		}
+
+		o.responseHeadersDest = dest
+
+		if len(headersToConsume) > 0 {
+			o.responseHeadersFilter = getResponseHeadersFilter(headersToConsume) 
+		}
 	}
 }
 
 func WithHTTPS() RequestOpt {
 	return func(o *RequestOpts) {
 		WithClientHTTPS()(o.ClientOpts)
+	}
+}
+
+func noResponseHeadersFilter(string) bool {
+	return true
+}
+
+func getResponseHeadersFilter(headers []string) responseHeadersFilter {
+	fm := make(map[string]struct{}, len(headers))
+	for _, h := range headers{
+		fm[h] = struct{}{}
+	}
+
+	return func(k string) bool {
+		_, ok := fm[k]
+		return ok
 	}
 }
 

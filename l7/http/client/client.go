@@ -341,6 +341,8 @@ func (c *Client) do(parent context.Context, method string, u *url.URL, opts []Re
 		return nil, c.errRequest(requestOpts, FailRequestMsg, err, r, 0)
 	}
 
+	c.writeResponseHeaders(response, requestOpts)
+
 	var rBody *ResponseBody
 	if !value.IsNil(response.Body) {
 		rBody = newResponseBody(response.Body, r.URL.Host, method, requestOpts.autoCloseResponseBody)
@@ -354,6 +356,24 @@ func (c *Client) do(parent context.Context, method string, u *url.URL, opts []Re
 	c.log(requestOpts, OKRequestMsg, logFuncInfo, r, response.StatusCode)
 
 	return rBody, nil
+}
+
+func (c *Client) writeResponseHeaders(r *http.Response, opts *RequestOpts) {
+	if opts.responseHeadersDest == nil {
+		return
+	}
+
+	if len(r.Header) == 0 {
+		return
+	}
+
+	for k := range r.Header {
+		if ! opts.responseHeadersFilter(k) {
+			continue
+		}
+
+		opts.responseHeadersDest[k] = r.Header.Get(k)
+	}
 }
 
 func (c *Client) err(msg string, errR error, method, passedPath string) error {
