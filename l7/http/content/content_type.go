@@ -17,7 +17,7 @@ const (
 )
 
 func CustomContentType(t string) ContentType {
-	return ContentType(t)
+	return t
 }
 
 func GetResponseContentType(r *http.Response) ContentType {

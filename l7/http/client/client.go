@@ -362,9 +362,11 @@ func (c *Client) do(parent context.Context, method string, u *url.URL, opts []Re
 	if !requestOpts.statusChecker(response.StatusCode) {
 		msg := fmt.Sprintf("%v: %d", ErrInvalidStatusCode, statusCode)
 
+		err := ErrInvalidStatusCode
+
 		err = appendErr(err, c.handleResponseErr(requestOpts, respBody, r))
 
-		return respBody, c.errRequest(requestOpts, msg, ErrInvalidStatusCode, r, statusCode)
+		return respBody, c.errRequest(requestOpts, msg, err, r, statusCode)
 	}
 
 	c.log(requestOpts, LogOKRequestMsg, logFuncInfo, r, statusCode)

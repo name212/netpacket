@@ -116,7 +116,7 @@ func (c *Client) logBody(requestOpts *RequestOpts, respBody *ResponseBody, r *ht
 
 	if n > 0 {
 		bodyStr = buf.String()
-	} else {
+	} else if err != nil {
 		bodyStr = fmt.Sprintf("<read body error: %v>", err)
 	}
 
@@ -186,16 +186,16 @@ func (l *responseBodyReadLogger) read(n int64, sufMsg string) {
 	)
 }
 
-func (l *responseBodyReadLogger) debug(msg string) {
-	if l == nil || l.logger == nil {
-		return
-	}
+// func (l *responseBodyReadLogger) debug(msg string) {
+// 	if l == nil || l.logger == nil {
+// 		return
+// 	}
 
-	l.logger.Debug(
-		msg,
-		l.attrs...,
-	)
-}
+// 	l.logger.Debug(
+// 		msg,
+// 		l.attrs...,
+// 	)
+// }
 
 func (l *responseBodyReadLogger) body(b []byte, msg string) {
 	if l == nil || l.logger == nil {
