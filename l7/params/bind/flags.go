@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/name212/netpacket/l7/params/unix"
 	"github.com/name212/netpacket/utils/params"
 )
 
@@ -44,7 +45,7 @@ func newAddrFlags(p *AddrParams, set ...*flag.FlagSet) (*AddrFlags, error) {
 			p.FullBindAddrEnvName,
 			p.help(
 				fmt.Sprintf(
-					"full bind address 'host:port' or %sPATH for bind to unix domain socket", UnixSocketPrefix,
+					"full bind address 'host:port' or %sPATH for bind to unix domain socket", unix.SocketPrefix,
 				),
 			),
 		).WithDefault(p.FullBindAddrDefault),
