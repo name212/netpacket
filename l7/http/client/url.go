@@ -3,7 +3,10 @@
 
 package client
 
-import "net/url"
+import (
+	"fmt"
+	"net/url"
+)
 
 func CopyURL(u *url.URL) *url.URL {
 	n, err := url.Parse(u.String())
@@ -32,4 +35,18 @@ func copyURL(u *url.URL) *url.URL {
 		OmitHost:    u.OmitHost,
 		ForceQuery:  u.ForceQuery,
 	}
+}
+
+func GetFullPathFromURL(u *url.URL) string {
+	res := u.Path
+
+	if u.RawQuery != "" {
+		res = fmt.Sprintf("%s?%s", res, u.RawQuery)
+	}
+
+	if u.Fragment != "" {
+		res = fmt.Sprintf("%s#%s", res, u.Fragment)
+	}
+
+	return res
 }

@@ -146,6 +146,21 @@ func NewClient(addr Addr, opts ...ClientOpt) (*Client, error) {
 	return c, nil
 }
 
+func NewClientForURL(u *url.URL, opts ...ClientOpt) (*Client, error) {
+	addr, err := NewURLAddr(u)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create client for url: %w", err)
+	}
+
+	passOpts := opts
+
+	if u.Scheme == "https" {
+		passOpts = append(passOpts, WithClientHTTPS())
+	}
+
+	return NewClient(addr, passOpts...)
+}
+
 func (c *Client) Get(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
 	return c.do(
 		parent,
@@ -164,6 +179,15 @@ func Get(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*R
 	return c.Get(parent, path, opts...)
 }
 
+func GetURL(parent context.Context, u *url.URL, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClientForURL(u)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Get(parent, GetFullPathFromURL(u), opts...)
+}
+
 func (c *Client) Post(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
 	return c.do(
 		parent,
@@ -180,6 +204,15 @@ func Post(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*
 	}
 
 	return c.Post(parent, path, opts...)
+}
+
+func PostURL(parent context.Context, u *url.URL, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClientForURL(u)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Post(parent, GetFullPathFromURL(u), opts...)
 }
 
 func (c *Client) Head(parent context.Context, path string, opts ...RequestOpt) error {
@@ -204,6 +237,15 @@ func Head(parent context.Context, addr Addr, path string, opts ...RequestOpt) er
 	return c.Head(parent, path, opts...)
 }
 
+func HeadURL(parent context.Context, u *url.URL, opts ...RequestOpt) error {
+	c, err := NewClientForURL(u)
+	if err != nil {
+		return err
+	}
+
+	return c.Head(parent, GetFullPathFromURL(u), opts...)
+}
+
 func (c *Client) Delete(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
 	return c.do(
 		parent,
@@ -220,6 +262,15 @@ func Delete(parent context.Context, addr Addr, path string, opts ...RequestOpt) 
 	}
 
 	return c.Delete(parent, path, opts...)
+}
+
+func DeleteURL(parent context.Context, u *url.URL, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClientForURL(u)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Delete(parent, GetFullPathFromURL(u), opts...)
 }
 
 func (c *Client) Put(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
@@ -240,6 +291,15 @@ func Put(parent context.Context, addr Addr, path string, opts ...RequestOpt) (*R
 	return c.Put(parent, path, opts...)
 }
 
+func PutURL(parent context.Context, u *url.URL, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClientForURL(u)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Put(parent, GetFullPathFromURL(u), opts...)
+}
+
 func (c *Client) Patch(parent context.Context, path string, opts ...RequestOpt) (*ResponseBody, error) {
 	return c.do(
 		parent,
@@ -256,6 +316,15 @@ func Patch(parent context.Context, addr Addr, path string, opts ...RequestOpt) (
 	}
 
 	return c.Patch(parent, path, opts...)
+}
+
+func PatchURL(parent context.Context, u *url.URL, opts ...RequestOpt) (*ResponseBody, error) {
+	c, err := NewClientForURL(u)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Patch(parent, GetFullPathFromURL(u), opts...)
 }
 
 func (c *Client) pathURL(path string) *url.URL {

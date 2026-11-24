@@ -7,8 +7,8 @@ import (
 	"flag"
 	"fmt"
 	"net"
-	"strings"
 
+	"github.com/name212/netpacket/l7/params/unix"
 	"github.com/name212/netpacket/utils/params"
 )
 
@@ -25,7 +25,6 @@ const (
 	DefaultUnixSocketModeArgName = "unix-socket-mode"
 	DefaultUnixSocketModeEnvName = "UNIX_SOCKET_MODE"
 
-	UnixSocketPrefix         = "unix:"
 	defaultUnixSocketModeInt = 0o700
 	DefaultUnixSocketMode    = "700"
 )
@@ -202,14 +201,9 @@ func (a *Addr) UnixSocketMode() (int, error) {
 }
 
 func (a *Addr) ExtractUnixSocketPath() (string, error) {
-	res := strings.TrimPrefix(a.BindAddr, UnixSocketPrefix)
-	if res == "" {
-		return "", fmt.Errorf("unix socket path is empty")
-	}
-
-	return res, nil
+	return unix.ExtractUnixSocketPath(a.BindAddr)
 }
 
 func (a *Addr) IsUnix() bool {
-	return strings.HasPrefix(a.BindAddr, UnixSocketPrefix)
+	return unix.IsUnix(a.BindAddr)
 }
