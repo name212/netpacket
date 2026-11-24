@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/name212/netpacket/utils/params"
 	"github.com/name212/netpacket/l7/params/unix"
+	"github.com/name212/netpacket/utils/params"
 )
 
 const (
