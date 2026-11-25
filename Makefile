@@ -14,3 +14,5 @@ lint: go/lint ## Lint
 lint/fix: go/lint/fix ## Fix lint
 
 test: go/test ## Run tests
+
+.PHONY: repo/upgrade/makefile-go lint lint/fix test
