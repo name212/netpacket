@@ -40,6 +40,7 @@ func newResponseBody(r io.ReadCloser, url, method string, needClose bool, conten
 	}
 }
 
+//nolint:unparam
 func (r *ResponseBody) withLogger(l *responseBodyReadLogger) *ResponseBody {
 	r.logger = l
 	return r
