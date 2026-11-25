@@ -34,8 +34,9 @@ type Addr interface {
 }
 
 type Client struct {
-	transport   http.RoundTripper
+	transport   *http.Transport
 	clientsPool *pool.Pool[*http.Client]
+	newClientFn func() *http.Client
 
 	hostURLPreparator URLPreparator
 	urlPreparator     URLPreparator
@@ -119,6 +120,10 @@ func NewClient(addr Addr, opts ...ClientOpt) (*Client, error) {
 
 	resultTransport.Proxy = http.ProxyFromEnvironment
 
+	if clientOpts.isHTTPS() && clientOpts.insecure {
+		resultTransport.TLSClientConfig.InsecureSkipVerify = true
+	}
+
 	hostURLPreparator := DummyURLPreparator
 	if !clientOpts.noReplaceHost {
 		hostURLPreparator = func(u *url.URL) *url.URL {
@@ -137,11 +142,13 @@ func NewClient(addr Addr, opts ...ClientOpt) (*Client, error) {
 		requestOpts:       clientsOptsToRequest(opts),
 	}
 
-	c.clientsPool = pool.NewPool(func() *http.Client {
+	c.newClientFn = func() *http.Client {
 		return &http.Client{
-			Transport: c.transport,
+			Transport: resultTransport,
 		}
-	})
+	}
+
+	c.clientsPool = pool.NewPool(c.newClientFn)
 
 	return c, nil
 }
@@ -154,7 +161,7 @@ func NewClientForURL(u *url.URL, opts ...ClientOpt) (*Client, error) {
 
 	passOpts := opts
 
-	if u.Scheme == "https" {
+	if u.Scheme == schemeHTTPS {
 		passOpts = append(passOpts, WithClientHTTPS())
 	}
 
@@ -327,6 +334,23 @@ func PatchURL(parent context.Context, u *url.URL, opts ...RequestOpt) (*Response
 	return c.Patch(parent, GetFullPathFromURL(u), opts...)
 }
 
+func (c *Client) prepareClient(cl *http.Client, requestOpts *RequestOpts) *http.Client {
+	if !requestOpts.isHTTPS() || !requestOpts.insecure {
+		return cl
+	}
+
+	if c.transport.TLSClientConfig.InsecureSkipVerify {
+		return cl
+	}
+
+	cl = c.newClientFn()
+	newTransport := c.transport.Clone()
+	newTransport.TLSClientConfig.InsecureSkipVerify = true
+	cl.Transport = newTransport
+
+	return cl
+}
+
 func (c *Client) pathURL(path string) *url.URL {
 	return &url.URL{
 		Path: path,
@@ -353,7 +377,7 @@ func (c *Client) prepareRequestOpts(method string, u *url.URL, opts []RequestOpt
 	}
 
 	rURL := copyURL(u)
-	rURL.Scheme = requestOpts.schema
+	rURL.Scheme = requestOpts.scheme
 	rURL = c.hostURLPreparator(rURL)
 	rURL = c.urlPreparator(rURL)
 
@@ -393,13 +417,16 @@ func (c *Client) do(parent context.Context, method string, u *url.URL, opts []Re
 	}
 
 	cl := c.clientsPool.Get()
+	restoreCl := cl
 	if cl == nil {
 		return nil, c.err("cannot get client", fmt.Errorf("pool return nil"), method, u.Path)
 	}
 
 	defer func() {
-		c.clientsPool.Put(cl)
+		c.clientsPool.Put(restoreCl)
 	}()
+
+	cl = c.prepareClient(cl, requestOpts)
 
 	var respBody *ResponseBody
 
