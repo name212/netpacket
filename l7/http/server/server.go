@@ -235,8 +235,10 @@ func (u *unixListener) start() (net.Listener, error) {
 
 func (u *unixListener) prepareSocksPath() error {
 	statPath, err := os.Stat(u.path)
-	if err == nil && statPath.IsDir() {
-		return fmt.Errorf(" unix socket path '%s' is dir", u.path)
+	if err == nil {
+		if statPath.IsDir() {
+			return fmt.Errorf(" unix socket path '%s' is dir", u.path)
+		}
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("cannot get stat for unix socket path '%s': %w", u.path, err)
 	}

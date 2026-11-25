@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/name212/netpacket/l7/http/log"
 )
@@ -25,6 +26,10 @@ const (
 	LogStatusCodeAttr   = log.StatusCodeAttr
 	LogTypeAttr         = log.LogTypeAttr
 
+	LogRetryErrAttr     = "retry_error"
+	LogRetryAttemptAttr = "attempt"
+	LogRetrySleepAttr   = "sleep_time"
+
 	LogErrAttr = log.ErrAttr
 )
 
@@ -36,14 +41,14 @@ const (
 	LogResponseBodyMsg = "response body"
 )
 
-type logFunc func(string, ...any)
-type logFuncConsumer func(l *slog.Logger) logFunc
+type LogFunc func(string, ...any)
+type LogFuncConsumer func(l *slog.Logger) LogFunc
 
-func logFuncErr(l *slog.Logger) logFunc {
+func LogFuncErr(l *slog.Logger) LogFunc {
 	return l.Error
 }
 
-func logFuncInfo(l *slog.Logger) logFunc {
+func LogFuncInfo(l *slog.Logger) LogFunc {
 	return l.Info
 }
 
@@ -83,6 +88,30 @@ func (c *Client) getLogger(requestOpts *RequestOpts) *slog.Logger {
 	}
 
 	return logger
+}
+
+func (c *Client) setRetrierLogger(requestOpts *RequestOpts, method, path string) {
+	if requestOpts.retrier == nil {
+		return
+	}
+
+	parent := c.getLogger(requestOpts)
+	if parent == nil {
+		return
+	}
+
+	r := &http.Request{
+		URL: &url.URL{
+			Path: path,
+		},
+		Method: method,
+	}
+
+	a := c.logAttrs(requestOpts, r, 0)
+
+	requestOpts.retrier.WithLogger(
+		slog.New(parent.Handler()).With(a...),
+	)
 }
 
 func (c *Client) readBodyLogger(requestOpts *RequestOpts, r *http.Request, code int) *responseBodyReadLogger {
@@ -136,7 +165,7 @@ func (c *Client) logBody(requestOpts *RequestOpts, respBody *ResponseBody, r *ht
 	lf(LogResponseBodyMsg, attrs...)
 }
 
-func (c *Client) log(requestOpts *RequestOpts, msg string, fc logFuncConsumer, r *http.Request, code int, attrs ...any) {
+func (c *Client) log(requestOpts *RequestOpts, msg string, fc LogFuncConsumer, r *http.Request, code int, attrs ...any) {
 	logger := c.getLogger(requestOpts)
 	if logger == nil {
 		return
@@ -149,7 +178,7 @@ type responseBodyReadLogger struct {
 	logger *slog.Logger
 	attrs  []any
 
-	bodyLogger logFuncConsumer
+	bodyLogger LogFuncConsumer
 	bodyLimit  int64
 
 	lenAttrAdded bool
