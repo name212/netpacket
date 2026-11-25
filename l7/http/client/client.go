@@ -388,6 +388,9 @@ func (c *Client) do(parent context.Context, method string, u *url.URL, opts []Re
 	}
 
 	passedPath := u.Path
+	if passedPath == "" {
+		passedPath = "/"
+	}
 
 	cl := c.clientsPool.Get()
 	if cl == nil {

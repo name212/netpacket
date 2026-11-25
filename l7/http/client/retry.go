@@ -72,7 +72,7 @@ func (r *Retrier) makeRetry(ctx context.Context, err error, statusCode int) erro
 		select {
 		case <-ctx.Done():
 			r.stopTimer()
-			return fmt.Errorf("%w: context canceled with %w when retry on %w", ErrRetryStop, ctx.Err(), err)
+			return fmt.Errorf("%w: context canceled with '%w' when retry on %w", ErrRetryStop, ctx.Err(), err)
 		case <-r.getTimer().C:
 			return nil
 		}
