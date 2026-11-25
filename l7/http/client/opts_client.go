@@ -14,8 +14,12 @@ import (
 const (
 	DefaultTimeoutSeconds = 10
 	DefaultLogBodyLimit   = int64(2 * 1024)
-	userAgentHeader       = "User-Agent"
-	noLogBodyLevel        = math.MaxInt
+
+	userAgentHeader = "User-Agent"
+	noLogBodyLevel  = math.MaxInt
+
+	schemeHTTP  = "http"
+	schemeHTTPS = "https"
 )
 
 type Headers = map[string]string
@@ -23,7 +27,7 @@ type Headers = map[string]string
 type ClientOpts struct {
 	headers               Headers
 	timeout               time.Duration
-	schema                string
+	scheme                string
 	logger                *slog.Logger
 	noReplaceHost         bool
 	urlPreparator         URLPreparator
@@ -32,6 +36,7 @@ type ClientOpts struct {
 	logBodyErr            slog.Level
 	logBodyLimit          int64
 	retrier               *Retrier
+	insecure              bool
 }
 
 type ClientOpt func(o *ClientOpts)
@@ -40,7 +45,7 @@ func newClientOpts() *ClientOpts {
 	return &ClientOpts{
 		headers:               nil,
 		timeout:               DefaultTimeoutSeconds * time.Second,
-		schema:                "http",
+		scheme:                schemeHTTP,
 		noReplaceHost:         false,
 		urlPreparator:         DummyURLPreparator,
 		statusChecker:         StatusChecker200X,
@@ -48,6 +53,7 @@ func newClientOpts() *ClientOpts {
 		logBodyErr:            slog.LevelDebug,
 		logBodyLimit:          DefaultLogBodyLimit,
 		retrier:               nil,
+		insecure:              true,
 	}
 }
 
@@ -107,7 +113,13 @@ func WithClientUserAgent(a string) ClientOpt {
 
 func WithClientHTTPS() ClientOpt {
 	return func(o *ClientOpts) {
-		o.schema = "https"
+		o.scheme = schemeHTTPS
+	}
+}
+
+func WithClientInsecure() ClientOpt {
+	return func(o *ClientOpts) {
+		o.insecure = true
 	}
 }
 
@@ -217,4 +229,8 @@ func (o *ClientOpts) responseBodyErrLogFunc(logger *slog.Logger) LogFunc {
 	}
 
 	return logger.Debug
+}
+
+func (o *ClientOpts) isHTTPS() bool {
+	return o.scheme == schemeHTTPS
 }

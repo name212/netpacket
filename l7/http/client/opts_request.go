@@ -144,6 +144,12 @@ func WithHTTPS() RequestOpt {
 	}
 }
 
+func WithInsecure() RequestOpt {
+	return func(o *RequestOpts) {
+		WithClientInsecure()(o.ClientOpts)
+	}
+}
+
 func WithRetryAttempts(attempts int, sleep time.Duration, retryStatusCodes ...int) RequestOpt {
 	return func(o *RequestOpts) {
 		WithClientRetryAttempts(attempts, sleep, retryStatusCodes...)(o.ClientOpts)
