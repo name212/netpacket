@@ -7,4 +7,10 @@ export HELP_LIBRARIES_FIRST = true
 
 export HELP_LIBRARIES_OUT = $(CURDIR)/makefile-go
 
-repo/upgrade/makefile-go: go/upgrade/module
+repo/upgrade/makefile-go: go/upgrade/module ## Upgrade makefile-go module to latest
+
+lint: go/lint ## Lint
+
+lint/fix: go/lint/fix ## Fix lint
+
+test: go/test ## Run tests
