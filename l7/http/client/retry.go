@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 )
 
@@ -18,6 +19,16 @@ const (
 var (
 	ErrRetryStop             = fmt.Errorf("stop retry")
 	ErrRetryAttemptsExceeded = fmt.Errorf("all attempts exceeded")
+
+	RetryInternalErrorCodes = []int{
+		http.StatusInternalServerError,
+		http.StatusBadGateway,
+		http.StatusServiceUnavailable,
+		http.StatusGatewayTimeout,
+	}
+	RetryBadRequestCodes = []int{
+		http.StatusRequestTimeout,
+	}
 )
 
 type RetryFunc func(err error, attempt int, curSleep time.Duration, statusCode int, logger *slog.Logger) (time.Duration, error)
