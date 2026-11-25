@@ -333,16 +333,14 @@ func (c *Client) pathURL(path string) *url.URL {
 	}
 }
 
-func (c *Client) getRequest(method string, u *url.URL, opts []RequestOpt) (*http.Request, *RequestOpts, error) {
+func (c *Client) prepareRequestOpts(method string, u *url.URL, opts []RequestOpt) (*RequestOpts, string, error) {
 	if u == nil {
-		return nil, nil, fmt.Errorf("empty url for host '%s' with method %s", c.host, method)
+		return nil, "", fmt.Errorf("empty url for host '%s' with method %s", c.host, method)
 	}
 
 	if u.Path == "" {
-		return nil, nil, fmt.Errorf("empty url for host '%s' with method %s", c.host, method)
+		return nil, "", fmt.Errorf("empty url for host '%s' with method %s", c.host, method)
 	}
-
-	passedPath := u.Path
 
 	requestOpts := newRequestOpts()
 
@@ -359,13 +357,19 @@ func (c *Client) getRequest(method string, u *url.URL, opts []RequestOpt) (*http
 	rURL = c.hostURLPreparator(rURL)
 	rURL = c.urlPreparator(rURL)
 
-	if _, err := url.Parse(rURL.String()); err != nil {
-		return nil, nil, c.err("url is incorrect", err, method, passedPath)
+	urlStr := rURL.String()
+
+	if _, err := url.Parse(urlStr); err != nil {
+		return nil, "", c.err("url is incorrect", err, method, u.Path)
 	}
 
-	res, err := http.NewRequest(method, rURL.String(), requestOpts.body)
+	return requestOpts, urlStr, nil
+}
+
+func (c *Client) getRequest(method, rURL string, requestOpts *RequestOpts) (*http.Request, error) {
+	res, err := http.NewRequest(method, rURL, requestOpts.body)
 	if err != nil {
-		return nil, nil, c.err("cannot create http request", err, method, passedPath)
+		return nil, err
 	}
 
 	if len(requestOpts.headers) > 0 {
@@ -374,14 +378,16 @@ func (c *Client) getRequest(method string, u *url.URL, opts []RequestOpt) (*http
 		}
 	}
 
-	return res, requestOpts, nil
+	return res, nil
 }
 
 func (c *Client) do(parent context.Context, method string, u *url.URL, opts []RequestOpt) (*ResponseBody, error) {
-	r, requestOpts, err := c.getRequest(method, u, opts)
+	requestOpts, urlStr, err := c.prepareRequestOpts(method, u, opts)
 	if err != nil {
 		return nil, err
 	}
+
+	passedPath := u.Path
 
 	cl := c.clientsPool.Get()
 	if cl == nil {
@@ -392,53 +398,84 @@ func (c *Client) do(parent context.Context, method string, u *url.URL, opts []Re
 		c.clientsPool.Put(cl)
 	}()
 
-	c.log(requestOpts, "start request", logFuncInfo, r, 0)
+	var respBody *ResponseBody
 
-	ctx, cancel := context.WithTimeout(parent, requestOpts.timeout)
-	defer cancel()
+	c.setRetrierLogger(requestOpts, method, passedPath)
 
-	r = r.WithContext(ctx)
-
-	response, err := cl.Do(r)
-
-	if err != nil {
-		if urlErr, ok := err.(*url.Error); ok {
-			if urlErr.Timeout() {
-				return nil, c.errRequest(requestOpts, LogFailRequestMsg, ErrTimeout, r, 0)
-			}
+	for {
+		r, err := c.getRequest(method, urlStr, requestOpts)
+		if err != nil {
+			return nil, c.err("cannot create http request", err, method, passedPath)
 		}
 
-		return nil, c.errRequest(requestOpts, LogFailRequestMsg, err, r, 0)
+		response, err := c.runRequest(parent, cl, r, requestOpts)
+
+		if err != nil {
+			var retryErr error
+			if requestOpts.retrier != nil {
+				retryErr = requestOpts.retrier.makeRetry(parent, err, 0)
+				if retryErr == nil {
+					continue
+				}
+			}
+
+			if urlErr, ok := err.(*url.Error); ok && urlErr.Timeout() {
+				return nil, c.errRequest(requestOpts, LogFailRequestMsg, appendErr(ErrTimeout, retryErr), r, 0)
+			}
+
+			return nil, c.errRequest(requestOpts, LogFailRequestMsg, appendErr(err, retryErr), r, 0)
+		}
+
+		statusCode := response.StatusCode
+
+		if !value.IsNil(response.Body) {
+			respBody = newResponseBody(
+				response.Body,
+				r.URL.Host,
+				method,
+				requestOpts.autoCloseResponseBody,
+				content.GetResponseContentType(response),
+			)
+		}
+
+		var retryErr error
+
+		validStatus := requestOpts.statusChecker(statusCode)
+		if !validStatus {
+			if requestOpts.retrier != nil {
+				retryErr = requestOpts.retrier.makeRetry(parent, err, statusCode)
+				if retryErr == nil {
+					_ = c.handleResponseErr(requestOpts, respBody, r)
+					continue
+				}
+			}
+
+			respBody.withLogger(c.readBodyLogger(requestOpts, r, statusCode))
+		} else {
+			respBody.withLogger(c.readBodyLogger(requestOpts, r, statusCode))
+		}
+
+		c.writeResponseHeaders(response, requestOpts)
+
+		if !validStatus {
+			msg := fmt.Sprintf("%v: %d", ErrInvalidStatusCode, statusCode)
+
+			err := ErrInvalidStatusCode
+
+			if retryErr != nil && retryErr == ErrInvalidStatusCode {
+				err = nil
+			}
+
+			err = appendErr(err, retryErr)
+
+			err = appendErr(err, c.handleResponseErr(requestOpts, respBody, r))
+
+			return respBody, c.errRequest(requestOpts, msg, err, r, statusCode)
+		}
+
+		c.log(requestOpts, LogOKRequestMsg, LogFuncInfo, r, statusCode)
+		break
 	}
-
-	c.writeResponseHeaders(response, requestOpts)
-
-	statusCode := response.StatusCode
-
-	var respBody *ResponseBody
-	if !value.IsNil(response.Body) {
-		respBody = newResponseBody(
-			response.Body,
-			r.URL.Host,
-			method,
-			requestOpts.autoCloseResponseBody,
-			content.GetResponseContentType(response),
-		).withLogger(
-			c.readBodyLogger(requestOpts, r, statusCode),
-		)
-	}
-
-	if !requestOpts.statusChecker(response.StatusCode) {
-		msg := fmt.Sprintf("%v: %d", ErrInvalidStatusCode, statusCode)
-
-		err := ErrInvalidStatusCode
-
-		err = appendErr(err, c.handleResponseErr(requestOpts, respBody, r))
-
-		return respBody, c.errRequest(requestOpts, msg, err, r, statusCode)
-	}
-
-	c.log(requestOpts, LogOKRequestMsg, logFuncInfo, r, statusCode)
 
 	return respBody, nil
 }
@@ -470,7 +507,7 @@ func (c *Client) handleResponseErr(requestOpts *RequestOpts, respBody *ResponseB
 
 	if requestOpts.autoCloseResponseBody {
 		if err := respBody.Close(); err != nil {
-			c.log(requestOpts, "cannot close response body", logFuncErr, r, 0)
+			c.log(requestOpts, "cannot close response body", LogFuncErr, r, 0)
 			return err
 		}
 	}
@@ -495,14 +532,29 @@ func (c *Client) errRequest(requestOpts *RequestOpts, msg string, errR error, r 
 		res = fmt.Errorf("%w response code %d", res, code)
 	}
 
-	c.log(requestOpts, msg, logFuncErr, r, code, slog.String(LogErrAttr, errR.Error()))
+	c.log(requestOpts, msg, LogFuncErr, r, code, slog.String(LogErrAttr, errR.Error()))
 
 	return res
+}
+
+func (c *Client) runRequest(parent context.Context, cl *http.Client, r *http.Request, requestOpts *RequestOpts) (*http.Response, error) {
+	c.log(requestOpts, "start request", LogFuncInfo, r, 0)
+
+	ctx, cancel := context.WithTimeout(parent, requestOpts.timeout)
+	defer cancel()
+
+	r = r.WithContext(ctx)
+
+	return cl.Do(r)
 }
 
 func appendErr(err, err2 error) error {
 	if err2 == nil {
 		return err
+	}
+
+	if err == nil {
+		return nil
 	}
 
 	return fmt.Errorf("%w; %w", err, err2)

@@ -31,6 +31,7 @@ type ClientOpts struct {
 	autoCloseResponseBody bool
 	logBodyErr            slog.Level
 	logBodyLimit          int64
+	retrier               *Retrier
 }
 
 type ClientOpt func(o *ClientOpts)
@@ -46,6 +47,7 @@ func newClientOpts() *ClientOpts {
 		autoCloseResponseBody: true,
 		logBodyErr:            slog.LevelDebug,
 		logBodyLimit:          DefaultLogBodyLimit,
+		retrier:               nil,
 	}
 }
 
@@ -136,6 +138,24 @@ func WithClientNoLogResponseBodyWhenError() ClientOpt {
 	}
 }
 
+func WithClientRetryAttempts(attempts int, sleep time.Duration, retryStatusCodes ...int) ClientOpt {
+	return func(o *ClientOpts) {
+		o.retrier = NewAttemptsRetries(attempts, sleep, LogFuncErr, retryStatusCodes...)
+	}
+}
+
+func WithClientRetryAttemptsDefaultSleep(attempts int, retryStatusCodes ...int) ClientOpt {
+	return func(o *ClientOpts) {
+		o.retrier = NewAttemptsRetries(attempts, RetryDefaultSleep, LogFuncErr, retryStatusCodes...)
+	}
+}
+
+func WithClientRetrier(r *Retrier) ClientOpt {
+	return func(o *ClientOpts) {
+		o.retrier = r
+	}
+}
+
 func StatusChecker200X(code int) bool {
 	return code >= 200 && code < 299
 }
@@ -182,7 +202,7 @@ func (o *ClientOpts) getUserAgent() string {
 	return o.getHeader(userAgentHeader)
 }
 
-func (o *ClientOpts) responseBodyErrLogFunc(logger *slog.Logger) logFunc {
+func (o *ClientOpts) responseBodyErrLogFunc(logger *slog.Logger) LogFunc {
 	if logger == nil || o.logBodyErr == noLogBodyLevel {
 		return nil
 	}

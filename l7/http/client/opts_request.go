@@ -144,6 +144,24 @@ func WithHTTPS() RequestOpt {
 	}
 }
 
+func WithRetryAttempts(attempts int, sleep time.Duration, retryStatusCodes ...int) RequestOpt {
+	return func(o *RequestOpts) {
+		WithClientRetryAttempts(attempts, sleep, retryStatusCodes...)(o.ClientOpts)
+	}
+}
+
+func WithRetryAttemptsDefaultSleep(attempts int, retryStatusCodes ...int) RequestOpt {
+	return func(o *RequestOpts) {
+		WithClientRetryAttemptsDefaultSleep(attempts, retryStatusCodes...)(o.ClientOpts)
+	}
+}
+
+func WithWithRetrier(r *Retrier) RequestOpt {
+	return func(o *RequestOpts) {
+		WithClientRetrier(r)(o.ClientOpts)
+	}
+}
+
 func noResponseHeadersFilter(string) bool {
 	return true
 }
