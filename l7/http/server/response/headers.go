@@ -11,12 +11,17 @@ import (
 
 type Headers = map[string]string
 
-func setHeaders(w http.ResponseWriter, headers []Headers) content.ContentType {
+func setHeaders(w http.ResponseWriter, headers []Headers, contentLen int) content.ContentType {
 	if len(headers) == 0 {
-		return content.ContentNo
+		if contentLen >= 0 {
+			content.SetLenHeader(w, contentLen)
+		}
+		return content.TypeNo
 	}
 
-	ct := content.ContentNo
+	ct := content.TypeNo
+
+	hasLenHeader := false
 
 	for _, hh := range headers {
 		if len(hh) == 0 {
@@ -27,11 +32,26 @@ func setHeaders(w http.ResponseWriter, headers []Headers) content.ContentType {
 			if k == content.ContentTypeHeader {
 				ct = content.CustomContentType(v)
 			}
+
+			if k == content.LenHeader {
+				hasLenHeader = true
+			}
+
 			w.Header().Add(k, v)
 		}
 	}
 
+	if !hasLenHeader && contentLen >= 0 {
+		content.SetLenHeader(w, contentLen)
+	}
+
 	return ct
+}
+
+func HeadersWithContentType(ct content.ContentType, headers ...Headers) Headers {
+	hd := getHeaders(headers)[0]
+	content.AppendContentType(hd, ct)
+	return hd
 }
 
 func getHeaders(headers []Headers) []Headers {

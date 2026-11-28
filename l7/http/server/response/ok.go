@@ -32,12 +32,12 @@ func writeOK(w http.ResponseWriter, r *http.Request, code int, response []byte, 
 
 	logger := data.Logger()
 
-	ct := setHeaders(w, headers)
-
 	lenR := len(response)
 
-	if lenR > 0 && ct == content.ContentNo {
-		w.Header().Add(content.ContentTypeHeader, content.ContentText)
+	ct := setHeaders(w, headers, lenR)
+
+	if lenR > 0 && ct == content.TypeNo {
+		content.SetTypeHeader(w, content.TypeText)
 	}
 
 	w.WriteHeader(code)

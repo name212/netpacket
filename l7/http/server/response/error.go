@@ -76,10 +76,11 @@ func getErrorContent(w http.ResponseWriter, d *middleware.CtxServerData, msg str
 	out, ct := d.ErrorWriter()(msg, err)
 
 	if ct == "" {
-		ct = content.ContentText
+		ct = content.TypeText
 	}
 
 	w.Header().Add(content.ContentTypeHeader, ct)
+	content.SetLenHeader(w, len(out))
 
 	w.WriteHeader(code)
 
