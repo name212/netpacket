@@ -32,7 +32,7 @@ func Error(w http.ResponseWriter, r *http.Request, code int, msg string, err err
 
 	logger.RequestError(r, msg, err)
 
-	l, errW := writeErrorContent(w, data, msg, err, code)
+	l, errW := writeErrorContent(w, r, data, msg, err, code)
 	if errW != nil {
 		logger.RequestError(r, LogMsgErrWriteErrorResponse, errW)
 	}
@@ -51,7 +51,7 @@ func InternalError(w http.ResponseWriter, r *http.Request, msg string, err error
 func Panic(w http.ResponseWriter, r *http.Request, err error) {
 	data, r := middleware.GetServerData(r)
 
-	_, errW := writeErrorContent(w, data, PanicMsg, err, http.StatusInternalServerError)
+	_, errW := writeErrorContent(w, r, data, PanicMsg, err, http.StatusInternalServerError)
 
 	if errW != nil {
 		logger := data.Logger()
@@ -72,14 +72,19 @@ func LogInternalError(w http.ResponseWriter, r *http.Request, msg string, err er
 	logger.RequestError(r, msg, err)
 }
 
-func getErrorContent(w http.ResponseWriter, d *middleware.CtxServerData, msg string, err error, code int) []byte {
+func getErrorContent(w http.ResponseWriter, r *http.Request, d *middleware.CtxServerData, msg string, err error, code int) []byte {
+	if r.Method == http.MethodHead {
+		w.WriteHeader(code)
+		return nil
+	}
+
 	out, ct := d.ErrorWriter()(msg, err)
 
 	if ct == "" {
 		ct = content.TypeText
 	}
 
-	w.Header().Add(content.ContentTypeHeader, ct)
+	content.SetTypeHeader(w, ct)
 	content.SetLenHeader(w, len(out))
 
 	w.WriteHeader(code)
@@ -87,7 +92,11 @@ func getErrorContent(w http.ResponseWriter, d *middleware.CtxServerData, msg str
 	return out
 }
 
-func writeErrorContent(w http.ResponseWriter, d *middleware.CtxServerData, msg string, err error, code int) (int, error) {
-	out := getErrorContent(w, d, msg, err, code)
-	return w.Write(out)
+func writeErrorContent(w http.ResponseWriter, r *http.Request, d *middleware.CtxServerData, msg string, err error, code int) (int, error) {
+	out := getErrorContent(w, r, d, msg, err, code)
+	if len(out) > 0 {
+		return w.Write(out)
+	}
+
+	return 0, nil
 }
