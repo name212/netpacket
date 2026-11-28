@@ -4,7 +4,7 @@
 package content
 
 const (
-	TypeScriptSh ContentType = "application/x-sh"
+	TypeScriptSh  ContentType = "application/x-sh"
 	TypeScriptCSh ContentType = "application/x-csh"
 	TypeScriptPHP ContentType = "application/x-httpd-php"
 )
