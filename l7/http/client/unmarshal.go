@@ -39,9 +39,9 @@ func NewUnmarshalerConsumer(textUnmarshaler ...Unmarshaler) *UnmarshalerConsumer
 		txt = textUnmarshaler[0]
 	}
 
-	r.Add(content.ContentText, txt)
-	r.Add(content.ContentNo, txt)
-	r.Add(content.ContentJSON, json.Unmarshal)
+	r.Add(content.TypeText, txt)
+	r.Add(content.TypeNo, txt)
+	r.Add(content.TypeJSON, json.Unmarshal)
 
 	return r
 }

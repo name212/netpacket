@@ -12,7 +12,7 @@ import (
 type ErrorWriter func(msg string, err error) ([]byte, content.ContentType)
 
 func TextErrorWriter(msg string, err error) ([]byte, content.ContentType) {
-	return []byte(msg), content.ContentText
+	return []byte(msg), content.TypeText
 }
 
 func SetCtxErrorWriter(next http.Handler, writer ErrorWriter) http.Handler {

@@ -464,7 +464,7 @@ func (c *Client) do(parent context.Context, method string, u *url.URL, opts []Re
 				r.URL.Host,
 				method,
 				requestOpts.autoCloseResponseBody,
-				content.GetResponseContentType(response),
+				content.ResponseContentType(response),
 			)
 		}
 
